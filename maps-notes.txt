@@ -1,0 +1,18 @@
+"properties": {
+        "ID_0": "31",
+        "ISO": "BOL",
+        "NAME_0": "Bolivia",
+        "ID_1": "425",
+        "NAME_1": "Oruro",
+        "VARNAME_1": "",
+        "NL_NAME_1": "",
+        "HASC_1": "BO.OR",
+        "CC_1": "",
+        "TYPE_1": "Departamento",
+        "ENGTYPE_1": "Department",
+        "VALIDFR_1": "18260905",
+        "VALIDTO_1": "Present",
+        "REMARKS_1": "",
+        "Shape_Leng": "12.1818627309",
+        "Shape_Area": "4.42430709272"
+      }
