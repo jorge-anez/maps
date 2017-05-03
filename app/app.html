@@ -13,7 +13,7 @@
     <link rel="stylesheet" href="../bootstrap/css/bootstrap.min.css" type="text/css" />
     <link rel="stylesheet" href="../bootstrap/css/bootstrap-theme.min.css" type="text/css" />
     <script type="text/javascript">
-        var URL_SERVER = 'http://localhost:8080';
+        var URL_SERVER = 'http://localhost';
 		var map, editor;
         function init() {
             OpenLayers.Lang.setCode(language);
@@ -73,7 +73,7 @@
             //map.addControl(new OpenLayers.Control.KeyboardDefaults());
             //map.addControl(new OpenLayers.Control.OverviewMap());
 
-            map.setCenter(new OpenLayers.LonLat(-67.79266, -18.70219), 8);
+            map.setCenter(new OpenLayers.LonLat(-67.79266, -18.70219), 1);
 
 
             editor = new OpenLayers.Editor(map, {
@@ -94,7 +94,7 @@
                 ],
                 featureTypes: ['text','regular', 'polygon', 'path', 'point'],
                 editLayer: new OpenLayers.Layer.Vector('My Editor', {
-                                displayInLayerSwitcher: true
+                                displayInLayerSwitcher: false
                             })
             });
             //editor.startEditMode();
@@ -109,17 +109,9 @@
             formData.append("files", document.getElementById("dbf").files[0]);
             formData.append("files", document.getElementById("shx").files[0]);
             formData.append("files", document.getElementById("prj").files[0]);
-            //console.log(document.getElementById("shp").files[0]);
-            //return false;
             var request = new OpenLayers.Request.POST({
-                //url: "http://localhost/maps/index.php",
 				url: URL_SERVER + '/gis-persistent/rest/file/temp/upload',
                 data: formData,
-                /*
-                headers: {
-                    "Content-Type": "multipart/form-data"
-                },
-                */
                 callback: function (response) {
                     console.log(response);
                    /*
@@ -135,7 +127,6 @@
                     console.log(response);
                 }
             });
-
         }
 
         function loadLayerList() {
@@ -152,7 +143,7 @@
                     layerList.forEach(function(e) {
                         htmlStr += "<tr>";
                         htmlStr += "<td>" + e.layerName + "</td>";
-                        htmlStr += "<td><input type=\"checkbox\" checked onchange = \"setVisibility(" + e.layerId +", this.checked)\"></td>";
+                        htmlStr += "<td><input type=\"checkbox\" onchange = \"setVisibility(" + e.layerId +", this.checked)\"></td>";
                         htmlStr += "<td><input type=\"radio\" name=\"editable\" onchange =\"addLayerToEditor(" + e.layerId + ")\"></td>";
                         htmlStr += "<td>";
                         htmlStr += "<div class=\"btn-group\" role=\"group\" aria-label=\"...\">";
@@ -165,9 +156,9 @@
                         htmlStr += "</div>";
                         htmlStr += "</td>";
                         htmlStr += "</tr>";
-                        var layer = new OpenLayers.Layer.Vector(e.layerName, {displayInLayerSwitcher: false});
-                        layer.id = e.layerId;
-                        map.addLayer(layer);
+                        //var layer = new OpenLayers.Layer.Vector(e.layerName, {displayInLayerSwitcher: false});
+                        //layer.id = e.layerId;
+                        //map.addLayer(layer);
                     });
                     $('#layerList').html(htmlStr);
                 },
@@ -195,8 +186,20 @@
 
         function setVisibility(layerId, state) {
             var layer = map.getLayer(layerId);
-            layer.setVisibility(state);
-            //console.log(layerId + ":" + state);
+            if(layer)
+                layer.setVisibility(state);
+            else {
+                var layer = new OpenLayers.Layer.Vector("GeoJSON", {
+                    displayInLayerSwitcher: false,
+                    strategies: [new OpenLayers.Strategy.Fixed()],
+                    protocol: new OpenLayers.Protocol.HTTP({
+                        url: URL_SERVER + '/gis-persistent/rest/project/0/layer/' + layerId + '/listGeometries',
+                        format: new OpenLayers.Format.GeoJSON()
+                    })
+                });
+                layer.id = layerId;
+                map.addLayer(layer);
+            }
         }
 
         function guardarGeometria(layerId) {
@@ -227,7 +230,35 @@
             });
 
         }
-
+        function addNewLayer() {
+            $('#layerModal').modal('show');
+        }
+        function guardarCapa() {
+            var layerName = $('#layerModal input').val();
+            var obj = {
+                layerName: layerName,
+                epsgCode: 4326
+            };
+            var request = new OpenLayers.Request.POST({
+                url: URL_SERVER + '/gis-persistent/rest/project/1/layer/save',
+                data: JSON.stringify(obj),
+                headers: {
+                    "Content-Type": "application/json; charset=utf-8"
+                },
+                dataType: 'json',
+                callback: function (response) {
+                    $('#layerModal').modal('hide');
+                    $('#layerModal input').val('');
+                    loadLayerList();
+                    console.log(response);
+                },
+                failure: function (response) {
+                    $('#layerModal').modal('hide');
+                    console.log("Failure: ");
+                    console.log(response);
+                }
+            });
+        }
 
     </script>
     <style type="text/css">
@@ -281,6 +312,9 @@
                                 </tr>
                         </tbody>
                     </table>
+                    <button type="button" class="btn btn-default btn-sm" onclick="addNewLayer()">
+                        <span class="glyphicon glyphicon-plus" aria-hidden="true"></span> Nueva Capa
+                    </button>
                 </div>
                 <div id="sectionB" class="tab-pane fade">
                     SectionB
@@ -302,8 +336,34 @@
         <div class="col-sm-9 panel panel-default">
             <div id="map"></div>
         </div>
-
     </div>
+
+
+
+    <div id="layerModal" class="modal fade" tabindex="-1" role="dialog">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                    <h4 class="modal-title">Nueva Capa</h4>
+                </div>
+                <div class="modal-body">
+                    <div class="input-group">
+                        <span class="input-group-addon" id="basic-addon1">Nombre o Desc.</span>
+                        <input type="text" class="form-control" aria-describedby="basic-addon1">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Cerrar</button>
+                    <button type="button" class="btn btn-primary" onclick="guardarCapa()">Guardar</button>
+                </div>
+            </div><!-- /.modal-content -->
+        </div><!-- /.modal-dialog -->
+    </div><!-- /.modal -->
+
+
+
+
 </div>
 </body>
 </html>
