@@ -13,6 +13,7 @@
     <link rel="stylesheet" href="../bootstrap/css/bootstrap.min.css" type="text/css" />
     <link rel="stylesheet" href="../bootstrap/css/bootstrap-theme.min.css" type="text/css" />
     <script type="text/javascript">
+        var URL_SERVER = 'http://localhost:8080';
 		var map, editor;
         function init() {
             OpenLayers.Lang.setCode(language);
@@ -25,7 +26,7 @@
 									strategies       : [new OpenLayers.Strategy.Fixed()],
 									protocol         :  new OpenLayers.Protocol.HTTP({
 															//url: "http://localhost/maps/source/bolivia.json",
-															url: "http://localhost/maps/source/oruro.json",
+															url: URL_SERVER + '/gis-persistent/maps/source/oruro.json',
 															format: new OpenLayers.Format.GeoJSON()
 														}),
                                     styleMap: new OpenLayers.StyleMap({'default':{
@@ -57,9 +58,9 @@
             //map.addControl(new OpenLayers.Control.KeyboardDefaults());
             //map.addControl(new OpenLayers.Control.OverviewMap());
 
-            map.setCenter(new OpenLayers.LonLat(-67.79266, -18.70219), 1);
+            map.setCenter(new OpenLayers.LonLat(-67.79266, -18.70219), 8);
 
-            /*
+
             editor = new OpenLayers.Editor(map, {
                 activeControls: [
                       'LayerSettings'
@@ -81,8 +82,7 @@
                                 displayInLayerSwitcher: true
                             })
             });
-            editor.startEditMode();
-            */
+            //editor.startEditMode();
             loadLayerList();
         }
 
@@ -98,7 +98,7 @@
             //return false;
             var request = new OpenLayers.Request.POST({
                 //url: "http://localhost/maps/index.php",
-				url: "http://localhost/gis-persistent/rest/file/temp/upload",
+				url: URL_SERVER + '/gis-persistent/rest/file/temp/upload',
                 data: formData,
                 /*
                 headers: {
@@ -125,7 +125,7 @@
 
         function loadLayerList() {
             var request = new OpenLayers.Request.GET({
-                url: 'http://localhost/gis-persistent/rest/project/1/layer/listAll',
+                url:  URL_SERVER + '/gis-persistent/rest/project/1/layer/listAll',
                 callback: function (response) {
                     var json = JSON.parse(response.responseText);
                     if(!json.success) {
@@ -141,13 +141,10 @@
                         htmlStr += "<td><input type=\"radio\" name=\"editable\" onchange =\"addLayerToEditor(" + e.layerId + ")\"></td>";
                         htmlStr += "<td>";
                         htmlStr += "<div class=\"btn-group\" role=\"group\" aria-label=\"...\">";
-                        htmlStr += "<button type=\"button\" class=\"btn btn-default btn-sm\">";
-                        htmlStr += "<span class=\"glyphicon glyphicon-eye-open\" aria-hidden=\true\"></span>";
+                        htmlStr += "<button type=\"button\" class=\"btn btn-default btn-sm\"  onclick = \"guardarGeometria(" + e.layerId + ")\"  data-toggle=\"tooltip\" title=\"Guardar Geometria\">";
+                        htmlStr += "<span class=\"glyphicon glyphicon-save\" aria-hidden=\"true\"></span>";
                         htmlStr += "</button>";
-                        htmlStr += "<button type=\"button\" class=\"btn btn-default btn-sm\">";
-                        htmlStr += "<span class=\"glyphicon glyphicon-edit\" aria-hidden=\"true\"></span>";
-                        htmlStr += "</button>";
-                        htmlStr += "<button type=\"button\" class=\"btn btn-default btn-sm\">";
+                        htmlStr += "<button type=\"button\" class=\"btn btn-default btn-sm\" data-toggle=\"tooltip\" title=\"Limpiar Geometria\">";
                         htmlStr += "<span class=\"glyphicon glyphicon-trash\" aria-hidden=\"true\"></span>";
                         htmlStr += "</button>";
                         htmlStr += "</div>";
@@ -168,40 +165,52 @@
 
         function addLayerToEditor(layerId) {
             if(editor){
-                editor.startEditMode();
-                //    editor.editLayer.setVisibility(false);
+                editor.stopEditMode();
             }
-
             var layer = map.getLayer(layerId);
+            editor.editLayer = layer;
             //editor.stopEditMode();
             //editor.initialize(map, {editLayer: layer});
-            editor = new OpenLayers.Editor(map, {
-                activeControls: [
-                    'LayerSettings'
-                    , 'Navigation'
-                    , 'SnappingSettings'
-                    , 'CADTools'
-                    , 'TransformFeature'
-                    , 'Separator'
-                    , 'DeleteFeature'
-                    , 'DragFeature'
-                    , 'SelectFeature'
-                    , 'Separator'
-                    , 'DrawHole'
-                    , 'ModifyFeature'
-                    , 'Separator'
-                ],
-                featureTypes: ['text','regular', 'polygon', 'path', 'point'],
-                editLayer: layer
-            });
             //console.log(layer);
+            editor.addEditorControls();
+
             editor.startEditMode();
+            console.log(layer);
         }
 
         function setVisibility(layerId, state) {
             var layer = map.getLayer(layerId);
             layer.setVisibility(state);
             //console.log(layerId + ":" + state);
+        }
+
+        function guardarGeometria(layerId) {
+            //console.log(layerId);
+
+            var layer = map.getLayer(layerId);
+            if(!layer.features.length){
+                console.log('empty features');
+                return
+            }
+
+            var formatJson = new OpenLayers.Format.GeoJSON();
+            var geojson = JSON.parse(formatJson.write(map.getLayer(layerId).features));
+            //console.log(geojson);
+            var geojson = formatJson.write(map.getLayer(layerId).features);
+
+            var request = new OpenLayers.Request.POST({
+                url: URL_SERVER + '/gis-persistent/rest/project/1/layer/' + layerId + '/saveGeometries',
+                data: geojson,
+                dataType: 'json',
+                callback: function (response) {
+                    console.log(response);
+                },
+                failure: function (response) {
+                    console.log("Failure: ");
+                    console.log(response);
+                }
+            });
+
         }
 
 
@@ -234,8 +243,8 @@
                         <thead>
                             <tr>
                                 <th class="text-center">Capas</th>
-                                <th><div><span class="glyphicon glyphicon-eye-open" aria-hidden="true"></span></div></th>
-                                <th><div><span class="glyphicon glyphicon-pencil" aria-hidden="true"></span></div></th>
+                                <th><div data-toggle="tooltip" title="Visible"><span class="glyphicon glyphicon-eye-open" aria-hidden="true"></span></div></th>
+                                <th><div data-toggle="tooltip" title="Editable"><span class="glyphicon glyphicon-pencil" aria-hidden="true"></span></div></th>
                                 <th class="text-center">Opciones</th>
                             </tr>
                         </thead>
@@ -247,10 +256,7 @@
                                     <td>
                                         <div class="btn-group" role="group" aria-label="...">
                                             <button type="button" class="btn btn-default btn-sm">
-                                                <span class="glyphicon glyphicon-eye-open" aria-hidden="true"></span>
-                                            </button>
-                                            <button type="button" class="btn btn-default btn-sm">
-                                                <span class="glyphicon glyphicon-edit" aria-hidden="true"></span>
+                                                <span class="glyphicon glyphicon-save" aria-hidden="true"></span>
                                             </button>
                                             <button type="button" class="btn btn-default btn-sm">
                                                 <span class="glyphicon glyphicon-trash" aria-hidden="true"></span>
