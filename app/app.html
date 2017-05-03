@@ -19,14 +19,29 @@
             OpenLayers.Lang.setCode(language);
             map = new OpenLayers.Map('map');
            // map.addLayer(new OpenLayers.Layer.OSM());
-			
+            //async
+            var baseLayerId = null;
+            var BaseLayerRequest = new OpenLayers.Request.GET({
+                url: URL_SERVER + '/gis-persistent/rest/project/0/layer/baseLayer',
+                async: false,
+                callback: function (response) {
+                     var obj = JSON.parse(response.responseText);
+                     baseLayerId = obj.data.layerId;
+                },
+                failure: function (response) {
+                    console.log("Failure: ");
+                    console.log(response);
+                }
+            });
+
+			//console.log("after base layer");
 			var boliviaLayer = new OpenLayers.Layer.Vector("Mapa Oruro", {
 									projection       : "EPSG:4326",
                                     isBaseLayer      : true,
 									strategies       : [new OpenLayers.Strategy.Fixed()],
 									protocol         :  new OpenLayers.Protocol.HTTP({
-															//url: "http://localhost/maps/source/bolivia.json",
-															url: URL_SERVER + '/gis-persistent/maps/source/oruro.json',
+                                                            url: URL_SERVER + '/gis-persistent/rest/project/0/layer/' + baseLayerId + '/listGeometries',
+															//url: URL_SERVER + '/gis-persistent/maps/source/oruro.json',
 															format: new OpenLayers.Format.GeoJSON()
 														}),
                                     styleMap: new OpenLayers.StyleMap({'default':{
