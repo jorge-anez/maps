@@ -41,7 +41,6 @@
 									strategies       : [new OpenLayers.Strategy.Fixed()],
 									protocol         :  new OpenLayers.Protocol.HTTP({
                                                             url: URL_SERVER + '/gis-persistent/rest/project/0/layer/' + baseLayerId + '/listGeometries',
-															//url: URL_SERVER + '/gis-persistent/maps/source/oruro.json',
 															format: new OpenLayers.Format.GeoJSON()
 														}),
                                     styleMap: new OpenLayers.StyleMap({'default':{
@@ -92,10 +91,7 @@
                     , 'ModifyFeature'
                     , 'Separator'
                 ],
-                featureTypes: ['text','regular', 'polygon', 'path', 'point'],
-                editLayer: new OpenLayers.Layer.Vector('My Editor', {
-                                displayInLayerSwitcher: false
-                            })
+                featureTypes: ['text','regular', 'polygon', 'path', 'point']
             });
             //editor.startEditMode();
             loadLayerList();
@@ -143,10 +139,13 @@
                     layerList.forEach(function(e) {
                         htmlStr += "<tr>";
                         htmlStr += "<td>" + e.layerName + "</td>";
-                        htmlStr += "<td><input type=\"checkbox\" onchange = \"setVisibility(" + e.layerId +", this.checked)\"></td>";
+                        htmlStr += "<td><input type=\"checkbox\" checked onchange = \"setVisibility(" + e.layerId +", this.checked)\"></td>";
                         htmlStr += "<td><input type=\"radio\" name=\"editable\" onchange =\"addLayerToEditor(" + e.layerId + ")\"></td>";
                         htmlStr += "<td>";
                         htmlStr += "<div class=\"btn-group\" role=\"group\" aria-label=\"...\">";
+                        htmlStr += "<button type=\"button\" class=\"btn btn-default btn-sm\"  onclick = \"showAttributes(" + e.layerId + ")\"  data-toggle=\"tooltip\" title=\"Attributos\">";
+                        htmlStr += "<span class=\"glyphicon glyphicon-eye-open\" aria-hidden=\"true\"></span>";
+                        htmlStr += "</button>";
                         htmlStr += "<button type=\"button\" class=\"btn btn-default btn-sm\"  onclick = \"guardarGeometria(" + e.layerId + ")\"  data-toggle=\"tooltip\" title=\"Guardar Geometria\">";
                         htmlStr += "<span class=\"glyphicon glyphicon-save\" aria-hidden=\"true\"></span>";
                         htmlStr += "</button>";
@@ -159,6 +158,16 @@
                         //var layer = new OpenLayers.Layer.Vector(e.layerName, {displayInLayerSwitcher: false});
                         //layer.id = e.layerId;
                         //map.addLayer(layer);
+                        var layer = new OpenLayers.Layer.Vector("GeoJSON", {
+                            displayInLayerSwitcher: false,
+                            strategies: [new OpenLayers.Strategy.Fixed()],
+                            protocol: new OpenLayers.Protocol.HTTP({
+                                url: URL_SERVER + '/gis-persistent/rest/project/0/layer/' + e.layerId + '/listGeometries',
+                                format: new OpenLayers.Format.GeoJSON()
+                            })
+                        });
+                        layer.id = e.layerId;
+                        map.addLayer(layer);
                     });
                     $('#layerList').html(htmlStr);
                 },
@@ -174,12 +183,19 @@
                 editor.stopEditMode();
             }
             var layer = map.getLayer(layerId);
+            if(!layer) {
+                layer = new OpenLayers.Layer.Vector("GeoJSON", {
+                    displayInLayerSwitcher: false
+                });
+                layer.id = layerId;
+                map.addLayer(layer);
+            }
+
             editor.editLayer = layer;
             //editor.stopEditMode();
             //editor.initialize(map, {editLayer: layer});
             //console.log(layer);
             editor.addEditorControls();
-
             editor.startEditMode();
             console.log(layer);
         }
@@ -189,7 +205,7 @@
             if(layer)
                 layer.setVisibility(state);
             else {
-                var layer = new OpenLayers.Layer.Vector("GeoJSON", {
+                layer = new OpenLayers.Layer.Vector("GeoJSON", {
                     displayInLayerSwitcher: false,
                     strategies: [new OpenLayers.Strategy.Fixed()],
                     protocol: new OpenLayers.Protocol.HTTP({
@@ -260,6 +276,52 @@
             });
         }
 
+        function showAttributes(layerId) {
+            var layer = map.getLayer(layerId);
+            if(!layer) {
+                layer = new OpenLayers.Layer.Vector("GeoJSON", {
+                    displayInLayerSwitcher: false,
+                    strategies: [new OpenLayers.Strategy.Fixed()],
+                    protocol: new OpenLayers.Protocol.HTTP({
+                        url: URL_SERVER + '/gis-persistent/rest/project/0/layer/' + layerId + '/listGeometries',
+                        format: new OpenLayers.Format.GeoJSON()
+                    })
+                });
+                layer.id = layerId;
+                map.addLayer(layer);
+            }
+            var request = new OpenLayers.Request.GET({
+                url: URL_SERVER + '/gis-persistent/rest/project/0/layer/' + layerId + '/listAttributes',
+                callback: function (response) {
+                    var obj = JSON.parse(response.responseText);
+                    if(!obj.success) return;
+                    var htmlHead = "<tr>";
+                    obj.list.forEach(function(e) {
+                        htmlHead += "<th>" + e.attributeName + "</th>";
+                    });
+                    htmlHead += "</tr>";
+
+                    var htmlBody = "";
+                    layer.features.forEach(function(feature) {
+                        htmlBody += "<tr>";
+                        obj.list.forEach(function(e) {
+                            htmlBody += "<td>" + (feature.attributes['' + e.attributeName]) + "</td>";
+                        });
+                        htmlBody += "</tr>";
+                    });
+
+                    $('#attributeListModal table thead').html(htmlHead);
+                    $('#attributeListModal table tbody').html(htmlBody);
+                    $('#attributeListModal').modal('show');
+                },
+                failure: function (response) {
+                    console.log("Failure: ");
+                    console.log(response);
+                }
+            });
+
+        }
+
     </script>
     <style type="text/css">
     /* Make map consume all available space */
@@ -316,8 +378,8 @@
                         <span class="glyphicon glyphicon-plus" aria-hidden="true"></span> Nueva Capa
                     </button>
                 </div>
-                <div id="sectionB" class="tab-pane fade">
-                    SectionB
+                <div id="sectionB" class="tab-pane fade table-responsive">
+                    seccion B
                 </div>
                 <div id="sectionC" class="tab-pane fade">
                     <h3>Formato Shape File</h3>
@@ -360,6 +422,77 @@
             </div><!-- /.modal-content -->
         </div><!-- /.modal-dialog -->
     </div><!-- /.modal -->
+
+
+
+
+
+    <div id="attributeModal" class="modal fade" tabindex="-1" role="dialog">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                    <h4 class="modal-title">Attributos</h4>
+                </div>
+                <div class="modal-body">
+                    <table class="table table-bordered">
+                        <thead>
+                        <tr>
+                            <th>Nombre Attributo</th>
+                            <th>Tipo</th>
+                            <th>Por Defecto</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr>
+                            <td>1</td>
+                            <td>John</td>
+                            <td>John</td>
+                        </tr>
+                        </tbody>
+                        <tfoot>
+                        <tr>
+                            <td><input type="text" size="5"></td>
+                            <td><select></select></td>
+                            <td><input type="text" size="5"></td>
+                        </tr>
+                        </tfoot>
+                    </table>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Cerrar</button>
+                </div>
+            </div><!-- /.modal-content -->
+        </div><!-- /.modal-dialog -->
+    </div><!-- /.modal -->
+
+
+
+
+    <div id="attributeListModal" class="modal fade" tabindex="-1" role="dialog">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                    <h4 class="modal-title">Attributos</h4>
+                </div>
+                <div class="modal-body table-responsive">
+                    <table class="table table-bordered">
+                        <thead>
+                        </thead>
+                        <tbody>
+                        </tbody>
+                        <tfoot>
+                        </tfoot>
+                    </table>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Cerrar</button>
+                </div>
+            </div><!-- /.modal-content -->
+        </div><!-- /.modal-dialog -->
+    </div><!-- /.modal -->
+
 
 
 
