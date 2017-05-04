@@ -13,7 +13,7 @@
     <link rel="stylesheet" href="../bootstrap/css/bootstrap.min.css" type="text/css" />
     <link rel="stylesheet" href="../bootstrap/css/bootstrap-theme.min.css" type="text/css" />
     <script type="text/javascript">
-        var URL_SERVER = 'http://localhost:8080';
+        var URL_SERVER = 'http://localhost';
 		var map, editor;
         function init() {
             OpenLayers.Lang.setCode(language);
@@ -72,7 +72,7 @@
             //map.addControl(new OpenLayers.Control.KeyboardDefaults());
             //map.addControl(new OpenLayers.Control.OverviewMap());
 
-            map.setCenter(new OpenLayers.LonLat(-67.79266, -18.70219), 8);
+            map.setCenter(new OpenLayers.LonLat(-67.79266, -18.70219), 1);
 
 
             editor = new OpenLayers.Editor(map, {
@@ -146,7 +146,7 @@
                         htmlStr += "<button type=\"button\" class=\"btn btn-default btn-sm\"  onclick = \"showAttributes(" + e.layerId + ")\"  data-toggle=\"tooltip\" title=\"Attributos\">";
                         htmlStr += "<span class=\"glyphicon glyphicon-eye-open\" aria-hidden=\"true\"></span>";
                         htmlStr += "</button>";
-                        htmlStr += "<button type=\"button\" class=\"btn btn-default btn-sm\"  onclick = \"guardarGeometria(" + e.layerId + ")\"  data-toggle=\"tooltip\" title=\"Guardar Geometria\">";
+                        htmlStr += "<button type=\"button\" class=\"btn btn-default btn-sm\"  onclick = \"saveGeometry(" + e.layerId + ")\"  data-toggle=\"tooltip\" title=\"Guardar Geometria\">";
                         htmlStr += "<span class=\"glyphicon glyphicon-save\" aria-hidden=\"true\"></span>";
                         htmlStr += "</button>";
                         htmlStr += "<button type=\"button\" class=\"btn btn-default btn-sm\" data-toggle=\"tooltip\" title=\"Limpiar Geometria\">";
@@ -218,7 +218,7 @@
             }
         }
 
-        function guardarGeometria(layerId) {
+        function saveGeometry(layerId) {
             //console.log(layerId);
 
             var layer = map.getLayer(layerId);
@@ -229,13 +229,18 @@
 
             var formatJson = new OpenLayers.Format.GeoJSON();
             var geojson = JSON.parse(formatJson.write(map.getLayer(layerId).features));
-            //console.log(geojson);
-            var geojson = formatJson.write(map.getLayer(layerId).features);
+            var layerRequest = {
+                attributeNames: ['label'],
+                geojson: geojson
+            };
 
             var request = new OpenLayers.Request.POST({
                 url: URL_SERVER + '/gis-persistent/rest/layer/' + layerId + '/saveGeometries',
-                data: geojson,
+                data: JSON.stringify(layerRequest),
                 dataType: 'json',
+                headers: {
+                    "Content-Type": "application/json; charset=utf-8"
+                },
                 callback: function (response) {
                     console.log(response);
                 },
@@ -346,7 +351,7 @@
                 <li><a data-toggle="tab" href="#sectionC">Section C</a></li>
             </ul>
             <div class="tab-content">
-                <div id="sectionA" class="tab-pane fade in active">
+                <div id="sectionA" class="tab-pane active table-responsive">
                     <table class="table">
                         <thead>
                             <tr>
