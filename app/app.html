@@ -13,7 +13,7 @@
     <link rel="stylesheet" href="../bootstrap/css/bootstrap.min.css" type="text/css" />
     <link rel="stylesheet" href="../bootstrap/css/bootstrap-theme.min.css" type="text/css" />
     <script type="text/javascript">
-        var URL_SERVER = 'http://localhost';
+        var URL_SERVER = 'http://localhost:8080';
 		var map, editor;
         function init() {
             OpenLayers.Lang.setCode(language);
@@ -22,7 +22,7 @@
             //async
             var baseLayerId = null;
             var BaseLayerRequest = new OpenLayers.Request.GET({
-                url: URL_SERVER + '/gis-persistent/rest/project/0/layer/baseLayer',
+                url: URL_SERVER + '/gis-persistent/rest/layer/baseLayer',
                 async: false,
                 callback: function (response) {
                      var obj = JSON.parse(response.responseText);
@@ -40,7 +40,7 @@
                                     isBaseLayer      : true,
 									strategies       : [new OpenLayers.Strategy.Fixed()],
 									protocol         :  new OpenLayers.Protocol.HTTP({
-                                                            url: URL_SERVER + '/gis-persistent/rest/project/0/layer/' + baseLayerId + '/listGeometries',
+                                                            url: URL_SERVER + '/gis-persistent/rest/layer/' + baseLayerId + '/listGeometries',
 															format: new OpenLayers.Format.GeoJSON()
 														}),
                                     styleMap: new OpenLayers.StyleMap({'default':{
@@ -72,7 +72,7 @@
             //map.addControl(new OpenLayers.Control.KeyboardDefaults());
             //map.addControl(new OpenLayers.Control.OverviewMap());
 
-            map.setCenter(new OpenLayers.LonLat(-67.79266, -18.70219), 1);
+            map.setCenter(new OpenLayers.LonLat(-67.79266, -18.70219), 8);
 
 
             editor = new OpenLayers.Editor(map, {
@@ -127,7 +127,7 @@
 
         function loadLayerList() {
             var request = new OpenLayers.Request.GET({
-                url:  URL_SERVER + '/gis-persistent/rest/project/1/layer/listAll',
+                url:  URL_SERVER + '/gis-persistent/rest/layer/listAll',
                 callback: function (response) {
                     var json = JSON.parse(response.responseText);
                     if(!json.success) {
@@ -209,7 +209,7 @@
                     displayInLayerSwitcher: false,
                     strategies: [new OpenLayers.Strategy.Fixed()],
                     protocol: new OpenLayers.Protocol.HTTP({
-                        url: URL_SERVER + '/gis-persistent/rest/project/0/layer/' + layerId + '/listGeometries',
+                        url: URL_SERVER + '/gis-persistent/rest/layer/' + layerId + '/listGeometries',
                         format: new OpenLayers.Format.GeoJSON()
                     })
                 });
@@ -233,7 +233,7 @@
             var geojson = formatJson.write(map.getLayer(layerId).features);
 
             var request = new OpenLayers.Request.POST({
-                url: URL_SERVER + '/gis-persistent/rest/project/1/layer/' + layerId + '/saveGeometries',
+                url: URL_SERVER + '/gis-persistent/rest/layer/' + layerId + '/saveGeometries',
                 data: geojson,
                 dataType: 'json',
                 callback: function (response) {
@@ -256,7 +256,7 @@
                 epsgCode: 4326
             };
             var request = new OpenLayers.Request.POST({
-                url: URL_SERVER + '/gis-persistent/rest/project/1/layer/save',
+                url: URL_SERVER + '/gis-persistent/rest/layer/save',
                 data: JSON.stringify(obj),
                 headers: {
                     "Content-Type": "application/json; charset=utf-8"
@@ -283,7 +283,7 @@
                     displayInLayerSwitcher: false,
                     strategies: [new OpenLayers.Strategy.Fixed()],
                     protocol: new OpenLayers.Protocol.HTTP({
-                        url: URL_SERVER + '/gis-persistent/rest/project/0/layer/' + layerId + '/listGeometries',
+                        url: URL_SERVER + '/gis-persistent/rest/layer/' + layerId + '/listGeometries',
                         format: new OpenLayers.Format.GeoJSON()
                     })
                 });
@@ -291,7 +291,7 @@
                 map.addLayer(layer);
             }
             var request = new OpenLayers.Request.GET({
-                url: URL_SERVER + '/gis-persistent/rest/project/0/layer/' + layerId + '/listAttributes',
+                url: URL_SERVER + '/gis-persistent/rest/layer/' + layerId + '/listAttributes',
                 callback: function (response) {
                     var obj = JSON.parse(response.responseText);
                     if(!obj.success) return;
