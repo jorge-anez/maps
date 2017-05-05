@@ -13,7 +13,7 @@
     <link rel="stylesheet" href="../bootstrap/css/bootstrap.min.css" type="text/css" />
     <link rel="stylesheet" href="../bootstrap/css/bootstrap-theme.min.css" type="text/css" />
     <script type="text/javascript">
-        var URL_SERVER = 'http://localhost:8080';
+        var URL_SERVER = 'http://localhost';
         var layerAttributes = new Map();
 		var map, editor;
         function init() {
@@ -74,7 +74,7 @@
             //map.addControl(new OpenLayers.Control.KeyboardDefaults());
             //map.addControl(new OpenLayers.Control.OverviewMap());
 
-            map.setCenter(new OpenLayers.LonLat(-67.79266, -18.70219), 8);
+            map.setCenter(new OpenLayers.LonLat(-67.79266, -18.70219), 1);
 
 
             editor = new OpenLayers.Editor(map, {
@@ -221,8 +221,6 @@
         }
 
         function saveGeometry(layerId) {
-            //console.log(layerId);
-
             var layer = map.getLayer(layerId);
             if(!layer.features.length){
                 console.log('empty features');
@@ -303,25 +301,7 @@
                     var obj = JSON.parse(response.responseText);
                     if(!obj.success) return;
                     layerAttributes.set(layerId, obj.list);
-                    var htmlHead = "<thead><tr>";
-                    htmlHead += "<th>#</th>";
-                    for(var k = 0; k < obj.list.length; k++) {
-                        htmlHead += "<th>" + obj.list[k].attributeName + "</th>";
-                    }
-                    htmlHead += "</tr></thead>";
-                    var htmlBody = "<tbody>";
-
-                    for(var i = 0; i < layer.features.length; i++) {
-                        htmlBody += "<tr>";
-                        htmlBody += "<td>" + (i + 1) + "</td>";
-                        for(var k = 0; k < obj.list.length; k++) {
-                            htmlBody += "<td oninput = \"onChangeAttribute(this," + layerId + "," + i + ",'" + obj.list[k].attributeName +"')\"  contenteditable=\"true\">" + (layer.features[i].attributes['' + obj.list[k].attributeName]) + "</td>";
-                        }
-                        htmlBody += "</tr>";
-                    }
-                    htmlBody += "</tbody>";
-                    $('#attributeListModal table').html(htmlHead + htmlBody);
-                    $('#attributeListModal').modal('show');
+                    renderAttributes(layerId)
                 },
                 failure: function (response) {
                     console.log("Failure: ");
@@ -330,12 +310,67 @@
             });
         }
 
+        function addNewAttribute(layerId) {
+            var attribName = $("#attributeListModal input[name = 'attributeName']").val();
+            var attributeType = $("#attributeListModal input[name = 'attributeType']:checked").attr('type-date');
+            var listAttribs = layerAttributes.get(layerId);
+            if(!listAttribs) {
+                layerAttributes.set(layerId, [{attributeId: null, attributeName: attribName, classType:attributeType}]);
+            }else{
+                for(var i = 0; i < listAttribs.length; i++) {
+                    var e = listAttribs[i];
+                    if(e.attributeName === attribName) return;
+                }
+                listAttribs.push({attributeId: null, attributeName: attribName, classType:attributeType});
+            }
+            renderAttributes(layerId);
+        }
+
         function onChangeAttribute(comp, layerId, i, attributeName) {
             var value = comp.textContent;
             var layer = map.getLayer(layerId);
             if(layer) {
                 layer.features[i].attributes[attributeName] = value;
             }
+        }
+
+        function renderAttributes(layerId) {
+            var layer = map.getLayer(layerId);
+            var attribList = layerAttributes.get(layerId);
+            if(layer == null || attribList == null) return;
+            var htmlNewAttr  = "<div class=\"input-group\">";
+            htmlNewAttr += "<span class=\"input-group-addon\">Nombre Attributo</span>";
+            htmlNewAttr += "<input type=\"text\" name=\"attributeName\" class=\"form-control\" aria-label=\"...\">";
+            htmlNewAttr += "<span class=\"input-group-addon\">Cadena <input type=\"radio\" checked type-date=\"String\" name=\"attributeType\" aria-label=\"...\"></span>";
+            htmlNewAttr += "<span class=\"input-group-addon\">Entero <input type=\"radio\" type-date=\"Integer\" name=\"attributeType\" aria-label=\"...\"></span>";
+            htmlNewAttr += "<span class=\"input-group-addon\">Real <input type=\"radio\" type-date=\"Double\" name=\"attributeType\" aria-label=\"...\"></span>";
+            htmlNewAttr += "<span class=\"input-group-btn\">";
+            htmlNewAttr += "<button type=\"button\" class=\"btn btn-default btn-md\" onclick=\"addNewAttribute(" + layerId + ")\">";
+            htmlNewAttr += "<span class=\"glyphicon glyphicon-plus\" aria-hidden=\"true\"></span> Agregar";
+            htmlNewAttr += "</button>";
+            htmlNewAttr += "</span>";
+            htmlNewAttr += "</div>";
+
+            var htmlHead = "<table class=\"table table-bordered\"><thead><tr>";
+            htmlHead += "<th>#</th>";
+            for(var k = 0; k < attribList.length; k++) {
+                htmlHead += "<th>" + attribList[k].attributeName + "</th>";
+            }
+            htmlHead += "</tr></thead>";
+            var htmlBody = "<tbody>";
+
+            for(var i = 0; i < layer.features.length; i++) {
+                htmlBody += "<tr>";
+                htmlBody += "<td>" + (i + 1) + "</td>";
+                for(var k = 0; k < attribList.length; k++) {
+                    var attribValue = layer.features[i].attributes['' + attribList[k].attributeName] || '';
+                    htmlBody += "<td oninput = \"onChangeAttribute(this," + layerId + "," + i + ",'" + attribList[k].attributeName +"')\"  contenteditable=\"true\">" + attribValue + "</td>";
+                }
+                htmlBody += "</tr>";
+            }
+            htmlBody += "</tbody></table>";
+            $('#attributeListModal .modal-body').html(htmlNewAttr + htmlHead + htmlBody);
+            $('#attributeListModal').modal('show');
         }
     </script>
     <style type="text/css">
@@ -431,52 +466,6 @@
         </div><!-- /.modal-dialog -->
     </div><!-- /.modal -->
 
-
-
-
-
-    <div id="attributeModal" class="modal fade" tabindex="-1" role="dialog">
-        <div class="modal-dialog" role="document">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-                    <h4 class="modal-title">Attributos</h4>
-                </div>
-                <div class="modal-body">
-                    <table class="table table-bordered">
-                        <thead>
-                        <tr>
-                            <th>Nombre Attributo</th>
-                            <th>Tipo</th>
-                            <th>Por Defecto</th>
-                        </tr>
-                        </thead>
-                        <tbody>
-                        <tr>
-                            <td>1</td>
-                            <td>John</td>
-                            <td>John</td>
-                        </tr>
-                        </tbody>
-                        <tfoot>
-                        <tr>
-                            <td><input type="text" size="5"></td>
-                            <td><select></select></td>
-                            <td><input type="text" size="5"></td>
-                        </tr>
-                        </tfoot>
-                    </table>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-default" data-dismiss="modal">Cerrar</button>
-                </div>
-            </div><!-- /.modal-content -->
-        </div><!-- /.modal-dialog -->
-    </div><!-- /.modal -->
-
-
-
-
     <div id="attributeListModal" class="modal fade" tabindex="-1" role="dialog">
         <div class="modal-dialog" role="document">
             <div class="modal-content">
@@ -485,19 +474,6 @@
                     <h4 class="modal-title">ATRIBUTOS</h4>
                 </div>
                 <div class="modal-body table-responsive">
-                    <div class="input-group">
-                        <span class="input-group-addon">Nombre Attributo</span>
-                        <input type="text" class="form-control" aria-label="...">
-                        <span class="input-group-addon">Cadena <input type="radio" name="attributeName" aria-label="..."></span>
-                        <span class="input-group-addon">Entero <input type="radio" name="attributeName" aria-label="..."></span>
-                        <span class="input-group-addon">Real <input type="radio" name="attributeName" aria-label="..."></span>
-                        <span class="input-group-btn">
-                            <button type="button" class="btn btn-default btn-md" onclick="addNewAttribute()">
-                                <span class="glyphicon glyphicon-plus" aria-hidden="true"></span> Agregar
-                            </button>
-                        </span>
-                    </div>
-                    <table class="table table-bordered"></table>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-default" data-dismiss="modal">Cerrar</button>
@@ -505,9 +481,6 @@
             </div><!-- /.modal-content -->
         </div><!-- /.modal-dialog -->
     </div><!-- /.modal -->
-
-
-
 
 
 </div>
