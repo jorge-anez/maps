@@ -13,20 +13,21 @@
     <link rel="stylesheet" href="../bootstrap/css/bootstrap.min.css" type="text/css" />
     <link rel="stylesheet" href="../bootstrap/css/bootstrap-theme.min.css" type="text/css" />
     <script type="text/javascript">
-        var URL_SERVER = 'http://localhost';
+        var URL_SERVER = 'http://localhost:8080';
+        var layerAttributes = new Map();
 		var map, editor;
         function init() {
             OpenLayers.Lang.setCode(language);
             map = new OpenLayers.Map('map');
            // map.addLayer(new OpenLayers.Layer.OSM());
             //async
-            var baseLayerId = null;
+            var baseLayerData = null;
             var BaseLayerRequest = new OpenLayers.Request.GET({
                 url: URL_SERVER + '/gis-persistent/rest/layer/baseLayer',
                 async: false,
                 callback: function (response) {
                      var obj = JSON.parse(response.responseText);
-                     baseLayerId = obj.data.layerId;
+                    baseLayerData = obj.data;
                 },
                 failure: function (response) {
                     console.log("Failure: ");
@@ -35,12 +36,12 @@
             });
 
 			//console.log("after base layer");
-			var boliviaLayer = new OpenLayers.Layer.Vector("Mapa Oruro", {
+			var baseLayer = new OpenLayers.Layer.Vector("Mapa Oruro", {
 									projection       : "EPSG:4326",
                                     isBaseLayer      : true,
 									strategies       : [new OpenLayers.Strategy.Fixed()],
 									protocol         :  new OpenLayers.Protocol.HTTP({
-                                                            url: URL_SERVER + '/gis-persistent/rest/layer/' + baseLayerId + '/listGeometries',
+                                                            url: URL_SERVER + '/gis-persistent/rest/layer/' + baseLayerData.layerId + '/listGeometries',
 															format: new OpenLayers.Format.GeoJSON()
 														}),
                                     styleMap: new OpenLayers.StyleMap({'default':{
@@ -65,14 +66,15 @@
                                                     labelOutlineWidth: 2
                                     }})
 								});
-			map.addLayer(boliviaLayer);
+            baseLayer.id = baseLayerData.layerId;
+			map.addLayer(baseLayer);
             map.addControl(new OpenLayers.Control.MousePosition());
             map.addControl(new OpenLayers.Control.ScaleLine());
             map.addControl(new OpenLayers.Control.LayerSwitcher());
             //map.addControl(new OpenLayers.Control.KeyboardDefaults());
             //map.addControl(new OpenLayers.Control.OverviewMap());
 
-            map.setCenter(new OpenLayers.LonLat(-67.79266, -18.70219), 1);
+            map.setCenter(new OpenLayers.LonLat(-67.79266, -18.70219), 8);
 
 
             editor = new OpenLayers.Editor(map, {
@@ -300,23 +302,25 @@
                 callback: function (response) {
                     var obj = JSON.parse(response.responseText);
                     if(!obj.success) return;
-                    var htmlHead = "<tr>";
-                    obj.list.forEach(function(e) {
-                        htmlHead += "<th>" + e.attributeName + "</th>";
-                    });
-                    htmlHead += "</tr>";
+                    layerAttributes.set(layerId, obj.list);
+                    var htmlHead = "<thead><tr>";
+                    htmlHead += "<th>#</th>";
+                    for(var k = 0; k < obj.list.length; k++) {
+                        htmlHead += "<th>" + obj.list[k].attributeName + "</th>";
+                    }
+                    htmlHead += "</tr></thead>";
+                    var htmlBody = "<tbody>";
 
-                    var htmlBody = "";
-                    layer.features.forEach(function(feature) {
+                    for(var i = 0; i < layer.features.length; i++) {
                         htmlBody += "<tr>";
-                        obj.list.forEach(function(e) {
-                            htmlBody += "<td>" + (feature.attributes['' + e.attributeName]) + "</td>";
-                        });
+                        htmlBody += "<td>" + (i + 1) + "</td>";
+                        for(var k = 0; k < obj.list.length; k++) {
+                            htmlBody += "<td oninput = \"onChangeAttribute(this," + layerId + "," + i + ",'" + obj.list[k].attributeName +"')\"  contenteditable=\"true\">" + (layer.features[i].attributes['' + obj.list[k].attributeName]) + "</td>";
+                        }
                         htmlBody += "</tr>";
-                    });
-
-                    $('#attributeListModal table thead').html(htmlHead);
-                    $('#attributeListModal table tbody').html(htmlBody);
+                    }
+                    htmlBody += "</tbody>";
+                    $('#attributeListModal table').html(htmlHead + htmlBody);
                     $('#attributeListModal').modal('show');
                 },
                 failure: function (response) {
@@ -324,9 +328,15 @@
                     console.log(response);
                 }
             });
-
         }
 
+        function onChangeAttribute(comp, layerId, i, attributeName) {
+            var value = comp.textContent;
+            var layer = map.getLayer(layerId);
+            if(layer) {
+                layer.features[i].attributes[attributeName] = value;
+            }
+        }
     </script>
     <style type="text/css">
     /* Make map consume all available space */
@@ -334,8 +344,17 @@
         height: 600px;
         min-height: 600px;
     }
-    .btn-group {
-        display: flex;
+    .modal-dialog {
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        padding: 0;
+    }
+
+    .modal-content {
+        height: auto;
+        min-height: 100%;
+        border-radius: 0;
     }
     </style>
     <link rel="stylesheet" href="../theme/geosilk/geosilk.css" type="text/css" />
@@ -463,17 +482,22 @@
             <div class="modal-content">
                 <div class="modal-header">
                     <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-                    <h4 class="modal-title">Attributos</h4>
+                    <h4 class="modal-title">ATRIBUTOS</h4>
                 </div>
                 <div class="modal-body table-responsive">
-                    <table class="table table-bordered">
-                        <thead>
-                        </thead>
-                        <tbody>
-                        </tbody>
-                        <tfoot>
-                        </tfoot>
-                    </table>
+                    <div class="input-group">
+                        <span class="input-group-addon">Nombre Attributo</span>
+                        <input type="text" class="form-control" aria-label="...">
+                        <span class="input-group-addon">Cadena <input type="radio" name="attributeName" aria-label="..."></span>
+                        <span class="input-group-addon">Entero <input type="radio" name="attributeName" aria-label="..."></span>
+                        <span class="input-group-addon">Real <input type="radio" name="attributeName" aria-label="..."></span>
+                        <span class="input-group-btn">
+                            <button type="button" class="btn btn-default btn-md" onclick="addNewAttribute()">
+                                <span class="glyphicon glyphicon-plus" aria-hidden="true"></span> Agregar
+                            </button>
+                        </span>
+                    </div>
+                    <table class="table table-bordered"></table>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-default" data-dismiss="modal">Cerrar</button>
