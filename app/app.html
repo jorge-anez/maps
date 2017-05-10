@@ -13,7 +13,7 @@
     <link rel="stylesheet" href="../bootstrap/css/bootstrap.min.css" type="text/css" />
     <link rel="stylesheet" href="../bootstrap/css/bootstrap-theme.min.css" type="text/css" />
     <script type="text/javascript">
-        var URL_SERVER = 'http://localhost';
+        var URL_SERVER = 'http://localhost:8080';
         var layerAttributes = new Map();
 		var map, editor;
         function init() {
@@ -74,7 +74,7 @@
             //map.addControl(new OpenLayers.Control.KeyboardDefaults());
             //map.addControl(new OpenLayers.Control.OverviewMap());
 
-            map.setCenter(new OpenLayers.LonLat(-67.79266, -18.70219), 1);
+            map.setCenter(new OpenLayers.LonLat(-67.79266, -18.70219), 8);
 
 
             editor = new OpenLayers.Editor(map, {
@@ -226,11 +226,20 @@
                 console.log('empty features');
                 return
             }
-
+            var listAttribs = layerAttributes.get(layerId) || [];
+            for(var k = 0; k < listAttribs.length; k++) {
+                var attribName = listAttribs[k].attributeName;
+                for (var i = 0; i < layer.features.length; i++) {
+                    if (!layer.features[i].attributes[attribName])
+                        layer.features[i].attributes[attribName] = null;
+                    if (!layer.features[i].data[attribName])
+                        layer.features[i].data[attribName] = null;
+                }
+            }
             var formatJson = new OpenLayers.Format.GeoJSON();
-            var geojson = JSON.parse(formatJson.write(map.getLayer(layerId).features));
+            var geojson = JSON.parse(formatJson.write(layer.features));
             var layerRequest = {
-                attributeNames: ['label'],
+                attributes: listAttribs,
                 geojson: geojson
             };
 
@@ -295,22 +304,29 @@
                 layer.id = layerId;
                 map.addLayer(layer);
             }
-            var request = new OpenLayers.Request.GET({
-                url: URL_SERVER + '/gis-persistent/rest/layer/' + layerId + '/listAttributes',
-                callback: function (response) {
-                    var obj = JSON.parse(response.responseText);
-                    if(!obj.success) return;
-                    layerAttributes.set(layerId, obj.list);
-                    renderAttributes(layerId)
-                },
-                failure: function (response) {
-                    console.log("Failure: ");
-                    console.log(response);
-                }
-            });
+            var listAttribs = layerAttributes.get(layerId);
+            if(!listAttribs) {
+                var request = new OpenLayers.Request.GET({
+                    url: URL_SERVER + '/gis-persistent/rest/layer/' + layerId + '/listAttributes',
+                    callback: function (response) {
+                        var obj = JSON.parse(response.responseText);
+                        if (!obj.success) return;
+                        layerAttributes.set(layerId, obj.list);
+                        renderAttributes(layerId)
+                    },
+                    failure: function (response) {
+                        console.log("Failure: ");
+                        console.log(response);
+                    }
+                });
+            }
+            else {
+                renderAttributes(layerId);
+            }
         }
 
         function addNewAttribute(layerId) {
+            var layer = map.getLayer(layerId);
             var attribName = $("#attributeListModal input[name = 'attributeName']").val();
             var attributeType = $("#attributeListModal input[name = 'attributeType']:checked").attr('type-date');
             var listAttribs = layerAttributes.get(layerId);
@@ -323,6 +339,13 @@
                 }
                 listAttribs.push({attributeId: null, attributeName: attribName, classType:attributeType});
             }
+            if(layer) {
+                for(var i = 0; i < layer.features.length; i++) {
+                    layer.features[i].attributes[attribName] = null;
+                    layer.features[i].data[attribName] = null;
+                }
+
+            }
             renderAttributes(layerId);
         }
 
@@ -331,6 +354,7 @@
             var layer = map.getLayer(layerId);
             if(layer) {
                 layer.features[i].attributes[attributeName] = value;
+                layer.features[i].data[attributeName] = value;
             }
         }
 
