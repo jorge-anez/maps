@@ -263,7 +263,7 @@
         function addNewLayer() {
             $('#layerModal').modal('show');
         }
-        function guardarCapa() {
+        function saveLayer() {
             var layerName = $('#layerModal input').val();
             var obj = {
                 layerName: layerName,
@@ -279,8 +279,43 @@
                 callback: function (response) {
                     $('#layerModal').modal('hide');
                     $('#layerModal input').val('');
-                    loadLayerList();
-                    console.log(response);
+                    //loadLayerList();
+                    //console.log(response);
+                    var obj = JSON.parse(response.responseText);
+                    if(!obj.success) return;
+                    var e = obj.data;
+                    var htmlStr = "<tr>";
+                    htmlStr += "<td>" + e.layerName + "</td>";
+                    htmlStr += "<td><input type=\"checkbox\" checked onchange = \"setVisibility(" + e.layerId +", this.checked)\"></td>";
+                    htmlStr += "<td><input type=\"radio\" name=\"editable\" onchange =\"addLayerToEditor(" + e.layerId + ")\"></td>";
+                    htmlStr += "<td>";
+                    htmlStr += "<div class=\"btn-group\" role=\"group\" aria-label=\"...\">";
+                    htmlStr += "<button type=\"button\" class=\"btn btn-default btn-sm\"  onclick = \"showAttributes(" + e.layerId + ")\"  data-toggle=\"tooltip\" title=\"Attributos\">";
+                    htmlStr += "<span class=\"glyphicon glyphicon-eye-open\" aria-hidden=\"true\"></span>";
+                    htmlStr += "</button>";
+                    htmlStr += "<button type=\"button\" class=\"btn btn-default btn-sm\"  onclick = \"saveGeometry(" + e.layerId + ")\"  data-toggle=\"tooltip\" title=\"Guardar Geometria\">";
+                    htmlStr += "<span class=\"glyphicon glyphicon-save\" aria-hidden=\"true\"></span>";
+                    htmlStr += "</button>";
+                    htmlStr += "<button type=\"button\" class=\"btn btn-default btn-sm\" data-toggle=\"tooltip\" title=\"Limpiar Geometria\">";
+                    htmlStr += "<span class=\"glyphicon glyphicon-trash\" aria-hidden=\"true\"></span>";
+                    htmlStr += "</button>";
+                    htmlStr += "</div>";
+                    htmlStr += "</td>";
+                    htmlStr += "</tr>";
+                    //var layer = new OpenLayers.Layer.Vector(e.layerName, {displayInLayerSwitcher: false});
+                    //layer.id = e.layerId;
+                    //map.addLayer(layer);
+                    var layer = new OpenLayers.Layer.Vector("GeoJSON", {
+                        displayInLayerSwitcher: false,
+                        strategies: [new OpenLayers.Strategy.Fixed()],
+                        protocol: new OpenLayers.Protocol.HTTP({
+                            url: URL_SERVER + '/gis-persistent/rest/layer/' + e.layerId + '/listGeometries',
+                            format: new OpenLayers.Format.GeoJSON()
+                        })
+                    });
+                    layer.id = e.layerId;
+                    map.addLayer(layer);
+                    $('#layerList').append(htmlStr);
                 },
                 failure: function (response) {
                     $('#layerModal').modal('hide');
@@ -331,13 +366,13 @@
             var attributeType = $("#attributeListModal input[name = 'attributeType']:checked").attr('type-date');
             var listAttribs = layerAttributes.get(layerId);
             if(!listAttribs) {
-                layerAttributes.set(layerId, [{attributeId: null, attributeName: attribName, classType:attributeType}]);
+                layerAttributes.set(layerId, [{attributeId: null, attributeName: attribName, attributeType: attributeType}]);
             }else{
                 for(var i = 0; i < listAttribs.length; i++) {
                     var e = listAttribs[i];
                     if(e.attributeName === attribName) return;
                 }
-                listAttribs.push({attributeId: null, attributeName: attribName, classType:attributeType});
+                listAttribs.push({attributeId: null, attributeName: attribName, attributeType: attributeType});
             }
             if(layer) {
                 for(var i = 0; i < layer.features.length; i++) {
@@ -349,9 +384,23 @@
             renderAttributes(layerId);
         }
 
-        function onChangeAttribute(comp, layerId, i, attributeName) {
+        function onChangeAttribute(comp, layerId, i, attributeName, attributeType) {
             var value = comp.textContent;
             var layer = map.getLayer(layerId);
+            if(attributeType === 'Integer') {
+                if(isNaN(value)) {
+                    alert('Invalido!!');
+                }else {
+                    value = parseInt(value);
+                }
+            }else if( attributeType === 'Double') {
+                if(isNaN(value)) {
+                    alert('Invalido!!');
+                }else {
+                    value = parseFloat(value);
+                }
+            }
+
             if(layer) {
                 layer.features[i].attributes[attributeName] = value;
                 layer.features[i].data[attributeName] = value;
@@ -365,9 +414,9 @@
             var htmlNewAttr  = "<div class=\"input-group\">";
             htmlNewAttr += "<span class=\"input-group-addon\">Nombre Attributo</span>";
             htmlNewAttr += "<input type=\"text\" name=\"attributeName\" class=\"form-control\" aria-label=\"...\">";
-            htmlNewAttr += "<span class=\"input-group-addon\">Cadena <input type=\"radio\" checked type-date=\"String\" name=\"attributeType\" aria-label=\"...\"></span>";
-            htmlNewAttr += "<span class=\"input-group-addon\">Entero <input type=\"radio\" type-date=\"Integer\" name=\"attributeType\" aria-label=\"...\"></span>";
-            htmlNewAttr += "<span class=\"input-group-addon\">Real <input type=\"radio\" type-date=\"Double\" name=\"attributeType\" aria-label=\"...\"></span>";
+            htmlNewAttr += "<span class=\"input-group-addon\">String <input type=\"radio\" checked type-date=\"String\" name=\"attributeType\" aria-label=\"...\"></span>";
+            htmlNewAttr += "<span class=\"input-group-addon\">Integer <input type=\"radio\" type-date=\"Integer\" name=\"attributeType\" aria-label=\"...\"></span>";
+            htmlNewAttr += "<span class=\"input-group-addon\">Float <input type=\"radio\" type-date=\"Double\" name=\"attributeType\" aria-label=\"...\"></span>";
             htmlNewAttr += "<span class=\"input-group-btn\">";
             htmlNewAttr += "<button type=\"button\" class=\"btn btn-default btn-md\" onclick=\"addNewAttribute(" + layerId + ")\">";
             htmlNewAttr += "<span class=\"glyphicon glyphicon-plus\" aria-hidden=\"true\"></span> Agregar";
@@ -378,7 +427,8 @@
             var htmlHead = "<table class=\"table table-bordered\"><thead><tr>";
             htmlHead += "<th>#</th>";
             for(var k = 0; k < attribList.length; k++) {
-                htmlHead += "<th>" + attribList[k].attributeName + "</th>";
+                var attribType = (attribList[k].attributeType == 'Integer')?'Int': (attribList[k].attributeType == 'Double')?'Float':'Str';
+                htmlHead += "<th>" + attribList[k].attributeName + "["+ attribType +"]</th>";
             }
             htmlHead += "</tr></thead>";
             var htmlBody = "<tbody>";
@@ -388,7 +438,7 @@
                 htmlBody += "<td>" + (i + 1) + "</td>";
                 for(var k = 0; k < attribList.length; k++) {
                     var attribValue = layer.features[i].attributes['' + attribList[k].attributeName] || '';
-                    htmlBody += "<td oninput = \"onChangeAttribute(this," + layerId + "," + i + ",'" + attribList[k].attributeName +"')\"  contenteditable=\"true\">" + attribValue + "</td>";
+                    htmlBody += "<td oninput = \"onChangeAttribute(this," + layerId + "," + i + ",'" + attribList[k].attributeName +"', '"+ attribList[k].attributeType +"')\"  contenteditable=\"true\">" + attribValue + "</td>";
                 }
                 htmlBody += "</tr>";
             }
@@ -484,7 +534,7 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-default" data-dismiss="modal">Cerrar</button>
-                    <button type="button" class="btn btn-primary" onclick="guardarCapa()">Guardar</button>
+                    <button type="button" class="btn btn-primary" onclick="saveLayer()">Guardar</button>
                 </div>
             </div><!-- /.modal-content -->
         </div><!-- /.modal-dialog -->
