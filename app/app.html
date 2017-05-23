@@ -13,7 +13,7 @@
     <link rel="stylesheet" href="../bootstrap/css/bootstrap.min.css" type="text/css" />
     <link rel="stylesheet" href="../bootstrap/css/bootstrap-theme.min.css" type="text/css" />
     <script type="text/javascript">
-        var URL_SERVER = 'http://localhost';
+        var URL_SERVER = 'http://localhost:8080';
         var layerAttributes = new Map();
 		var map, editor;
         function init() {
@@ -156,6 +156,16 @@
                                 format: new OpenLayers.Format.GeoJSON()
                             })
                         });
+
+                        OpenLayers.Request.GET({
+                            url: URL_SERVER + '/gis-persistent/rest/style/layer/4/sld',
+                            success: function(response) {
+                                var format = new OpenLayers.Format.SLD();
+                                var sld = format.read(response.responseXML || response.responseText);
+                                layer.styleMap.styles["default"] = sld.namedLayers["style-template"].userStyles[0];//use 0 if there's only one user styles
+                            }
+                        });
+
                         layer.id = e.layerId;
                         map.addLayer(layer);
                     });
@@ -426,7 +436,7 @@
                 htmlStr += "<td><input type=\"checkbox\" checked onchange = \"setVisibility(" + e.layerId +", this.checked)\"></td>";
                 htmlStr += "<td><input type=\"radio\" name=\"editable\" onchange =\"addLayerToEditor(" + e.layerId + ")\"></td>";
                 htmlStr += "<td>";
-                htmlStr += "<div class=\"btn-group\" role=\"group\" aria-label=\"...\">";
+                htmlStr += "<div class=\"btn-group button-bar\" role=\"group\" aria-label=\"...\">";
                 htmlStr += "<button type=\"button\" class=\"btn btn-default btn-sm\"  onclick = \"showAttributes(" + e.layerId + ")\"  data-toggle=\"tooltip\" title=\"Attributos\">";
                 htmlStr += "<span class=\"glyphicon glyphicon-eye-open\" aria-hidden=\"true\"></span>";
                 htmlStr += "</button>";
@@ -461,6 +471,9 @@
         height: auto;
         min-height: 100%;
         border-radius: 0;
+    }
+    .button-bar {
+        min-width: 100px;
     }
     </style>
     <link rel="stylesheet" href="../theme/geosilk/geosilk.css" type="text/css" />
