@@ -5,6 +5,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 
+
+
     <script src="../lib/OpenLayers.js"></script>
     <script type="text/javascript" src="../lib/loader.js"></script>
     <script type="text/javascript" src="../jquery/jquery.js"></script>
@@ -12,6 +14,12 @@
     <script type="text/javascript" src="../bootstrap/js/bootstrap-filestyle.min.js"></script>
     <link rel="stylesheet" href="../bootstrap/css/bootstrap.min.css" type="text/css" />
     <link rel="stylesheet" href="../bootstrap/css/bootstrap-theme.min.css" type="text/css" />
+
+    <link rel="stylesheet" href="../colorpicker/dist/css/bootstrap-colorpicker.min.css" type="text/css" />
+    <script type="text/javascript" src="../colorpicker/dist/js/bootstrap-colorpicker.min.js"></script>
+    <link rel="stylesheet" href="../bootstrap-slider/dist/css/bootstrap-slider.min.css" type="text/css" />
+    <script type="text/javascript" src="../bootstrap-slider/dist/bootstrap-slider.min.js"></script>
+
     <script type="text/javascript">
         var URL_SERVER = 'http://localhost:8080';
         var layerAttributes = new Map();
@@ -443,8 +451,8 @@
                 htmlStr += "<button type=\"button\" class=\"btn btn-default btn-sm\"  onclick = \"saveGeometry(" + e.layerId + ")\"  data-toggle=\"tooltip\" title=\"Guardar Geometria\">";
                 htmlStr += "<span class=\"glyphicon glyphicon-floppy-disk\" aria-hidden=\"true\"></span>";
                 htmlStr += "</button>";
-                htmlStr += "<button type=\"button\" class=\"btn btn-default btn-sm\" data-toggle=\"tooltip\" title=\"Limpiar Geometria\">";
-                htmlStr += "<span class=\"glyphicon glyphicon-download-alt\" aria-hidden=\"true\"></span>";
+                htmlStr += "<button type=\"button\" class=\"btn btn-default btn-sm\" onclick = \"showStyle(" + e.layerId + ")\" data-toggle=\"tooltip\" title=\"Estilos\">";
+                htmlStr += "<span class=\"glyphicon glyphicon-picture\" aria-hidden=\"true\"></span>";
                 htmlStr += "</button>";
                 htmlStr += "</div>";
                 htmlStr += "</td>";
@@ -452,6 +460,26 @@
             return htmlStr;
         }
 
+        function showStyle(layerId) {
+            $('#styleModal').modal('show');
+        }
+        $(function() {
+            $('#cp2').colorpicker({format: 'hex'});
+            $('#cp3').colorpicker({format: 'hex'});
+
+            $('#ex1').slider({
+                formatter: function(value) {
+                    return value + '%';
+                }
+            });
+
+            $('#ex2').slider({
+                formatter: function(value) {
+                    return value + '%';
+                }
+            });
+
+        });
 
     </script>
     <style type="text/css">
@@ -459,14 +487,16 @@
     #map {
         height: 600px;
         min-height: 600px;
+        background-color: #2aabd2;
     }
+    /*
     .modal-dialog {
         width: 100%;
         height: 100%;
         margin: 0;
         padding: 0;
     }
-
+    */
     .modal-content {
         height: auto;
         min-height: 100%;
@@ -565,6 +595,89 @@
         </div><!-- /.modal-dialog -->
     </div><!-- /.modal -->
 
+
+    <div id="styleModal" class="modal fade" tabindex="-1" role="dialog">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                    <h4 class="modal-title">ESTILOS</h4>
+                </div>
+                <div class="modal-body table-responsive">
+                    <h4>Relleno</h4>
+                    <div class="panel panel-default">
+                        <div class="panel-body">
+                            <div class="row form-horizontal">
+                                <div class="col-md-12 form-group form-group-sm">
+                                    <label for="colorFill1" class="col-xs-3 control-label">Color: </label>
+                                    <div id="cp2" class="col-xs-9 input-group colorpicker-component">
+                                        <input id="colorFill1" type="text" value="#00AABB" class="form-control" />
+                                        <span class="input-group-addon"><i></i></span>
+                                    </div>
+                                </div>
+                                <div class="col-md-12 form-group form-group-sm">
+                                    <label for="ex1" class="col-xs-3 control-label">Opacidad: </label>
+                                    <div class="col-xs-9 input-group colorpicker-component">
+                                        <input id="ex1" class="form-control" data-slider-id='ex1Slider' type="text" data-slider-min="0" data-slider-max="100" data-slider-step="1" data-slider-value="100"/>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+
+                    <h4>Stroke</h4>
+                    <div class="panel panel-default">
+                        <div class="panel-body">
+                            <div class="row form-horizontal">
+
+                                <div class="col-md-12 form-group form-group-sm">
+                                    <label for="colorFill3" class="col-xs-3 control-label">Estilo: </label>
+                                    <div id="cp4" class="col-xs-9 input-group colorpicker-component">
+                                        <select id="colorFill3" class="form-control input-sm">
+                                            <option>
+                                                <h5>holas estylo</h5>
+                                            </option>
+                                            <option>2</option>
+                                            <option>3</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+
+
+                                <div class="col-md-12 form-group form-group-sm">
+                                    <label for="colorFill2" class="col-xs-3 control-label">Color: </label>
+                                    <div id="cp3" class="col-xs-9 input-group colorpicker-component">
+                                        <input id="colorFill2" type="text" value="#00AABB" class="form-control" aria-describedby="sizing-addon3"/>
+                                        <span class="input-group-addon"><i></i></span>
+                                    </div>
+                                </div>
+
+                                <div class="col-md-12 form-group form-group-sm">
+                                    <label for="colorFill4" class="col-xs-3 control-label">Ancho: </label>
+                                    <div class="col-xs-9 input-group colorpicker-component">
+                                        <input id="colorFill4" type="text" class="form-control" aria-describedby="sizing-addon3"/>
+                                    </div>
+                                </div>
+
+                                <div class="col-md-12 form-group form-group-sm">
+                                    <label for="ex2" class="col-xs-3 control-label">Opacidad: </label>
+                                    <div class="col-xs-9 input-group colorpicker-component">
+                                        <input id="ex2" class="form-control" data-slider-id='ex1Slider' type="text" data-slider-min="0" data-slider-max="100" data-slider-step="1" data-slider-value="100"/>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Cerrar</button>
+                </div>
+            </div><!-- /.modal-content -->
+        </div><!-- /.modal-dialog -->
+    </div><!-- /.modal -->
 
 </div>
 </body>
