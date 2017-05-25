@@ -461,25 +461,100 @@
         }
 
         function showStyle(layerId) {
-            $('#styleModal').modal('show');
+            var m = $('#styleModal').modal('show');
+            m.attr('data-layer-id', layerId);
         }
+
+
+        var pointOpacityFill = null;
+        var pointStrokeOpacity = null;
+        var lineOpacityFill = null;
+        var lineStrokeOpacity = null;
+        var polygonOpacityFill = null;
+        var polygonStrokeOpacity = null;
         $(function() {
-            $('#cp2').colorpicker({format: 'hex'});
-            $('#cp3').colorpicker({format: 'hex'});
+            $('#point-color-fill-picker').colorpicker({format: 'hex'});
+            $('#point-stroke-color-picker').colorpicker({format: 'hex'});
+            $('#line-color-fill-picker').colorpicker({format: 'hex'});
+            $('#line-stroke-color-picker').colorpicker({format: 'hex'});
+            $('#polygon-color-fill-picker').colorpicker({format: 'hex'});
+            $('#polygon-stroke-color-picker').colorpicker({format: 'hex'});
 
-            $('#ex1').slider({
+            pointOpacityFill = $('#point-opacity-fill').slider({
+                formatter: function(value) {
+                    return value + '%';
+                }
+            });
+            pointStrokeOpacity = $('#point-stroke-opacity').slider({
                 formatter: function(value) {
                     return value + '%';
                 }
             });
 
-            $('#ex2').slider({
+            lineOpacityFill  = $('#line-opacity-fill').slider({
+                formatter: function(value) {
+                    return value + '%';
+                }
+            });
+            lineStrokeOpacity = $('#line-stroke-opacity').slider({
                 formatter: function(value) {
                     return value + '%';
                 }
             });
 
+            polygonOpacityFill = $('#polygon-opacity-fill').slider({
+                formatter: function(value) {
+                    return value + '%';
+                }
+            });
+            polygonStrokeOpacity = $('#polygon-stroke-opacity').slider({
+                formatter: function(value) {
+                    return value + '%';
+                }
+            });
         });
+
+
+        function applyStyle() {
+            var m = $('#styleModal');
+            var layerId = m.attr('data-layer-id');
+
+            var localPointColorFill = $('#point-color-fill').val();
+            var localPointOpacityFill = pointOpacityFill.val();
+            var localPointStrokeColor = $('#point-stroke-color').val();
+            var localPointStrokeWith = $('#point-stroke-with').val();
+            var localPointStrokeOpacity = pointStrokeOpacity.val();
+
+            var localLineColorFill = $('#line-color-fill').val();
+            var localLineOpacityFill = lineOpacityFill.val();
+            var localLineStrokeColor = $('#line-stroke-color').val();
+            var localLineStrokeWith = $('#line-stroke-with').val();
+            var localLineStrokeOpacity = lineStrokeOpacity.val();
+
+            var localPolygonColorFill = $('#polygon-color-fill').val();
+            var localPolygonOpacityFill = polygonOpacityFill.val();
+            var localPolygonStrokeColor = $('#polygon-stroke-color').val();
+            var localPolygonStrokeWith = $('#polygon-stroke-with').val();
+            var localPolygonStrokeOpacity = polygonStrokeOpacity.val();
+
+            var layer = map.getLayer(layerId);
+            var styleRules = layer.styleMap.styles.default.rules;
+            for(var i = 0; i < styleRules.length; i++) {
+                if(!styleRules[i].filter)
+                        continue;
+                var geometryType = styleRules[i].filter.value;
+                var symbolizer = styleRules[i].symbolizer;
+                if(geometryType === 'Point') {
+                    symbolizer.Point.fillColor = localPointColorFill;
+                    symbolizer.Point.pointRadius = localPointStrokeWith;
+                    symbolizer.Point.graphicName = 'circle';
+                    console.log(localPointColorFill);
+                }
+            }
+            layer.redraw();
+            $('#styleModal').modal('hide');
+        }
+
 
     </script>
     <style type="text/css">
@@ -596,83 +671,210 @@
     </div><!-- /.modal -->
 
 
-    <div id="styleModal" class="modal fade" tabindex="-1" role="dialog">
+    <div id="styleModal" class="modal fade" tabindex="-1" role="dialog" data-layer-id = "0">
         <div class="modal-dialog" role="document">
             <div class="modal-content">
-                <div class="modal-header">
-                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-                    <h4 class="modal-title">ESTILOS</h4>
-                </div>
                 <div class="modal-body table-responsive">
-                    <h4>Relleno</h4>
-                    <div class="panel panel-default">
-                        <div class="panel-body">
-                            <div class="row form-horizontal">
-                                <div class="col-md-12 form-group form-group-sm">
-                                    <label for="colorFill1" class="col-xs-3 control-label">Color: </label>
-                                    <div id="cp2" class="col-xs-9 input-group colorpicker-component">
-                                        <input id="colorFill1" type="text" value="#00AABB" class="form-control" />
-                                        <span class="input-group-addon"><i></i></span>
-                                    </div>
-                                </div>
-                                <div class="col-md-12 form-group form-group-sm">
-                                    <label for="ex1" class="col-xs-3 control-label">Opacidad: </label>
-                                    <div class="col-xs-9 input-group colorpicker-component">
-                                        <input id="ex1" class="form-control" data-slider-id='ex1Slider' type="text" data-slider-min="0" data-slider-max="100" data-slider-step="1" data-slider-value="100"/>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                       <ul class="nav nav-tabs">
+                           <li class="active"><a data-toggle="tab" href="#sectionPoint">Punto</a></li>
+                           <li><a data-toggle="tab" href="#sectionLine">Linea</a></li>
+                           <li><a data-toggle="tab" href="#sectionPolygon">poligono</a></li>
+                       </ul>
+                       <div class="tab-content">
+                           <div id="sectionPoint" class="tab-pane active">
+                               <h4>Relleno</h4>
+                               <div class="panel panel-default">
+                                   <div class="panel-body">
+                                       <div class="row form-horizontal">
+                                           <div class="col-md-12 form-group form-group-sm">
+                                               <label for="point-color-fill" class="col-xs-3 control-label">Color: </label>
+                                               <div id="point-color-fill-picker" class="col-xs-9 input-group colorpicker-component">
+                                                   <input id="point-color-fill" type="text" value="#00AABB" class="form-control" />
+                                                   <span class="input-group-addon"><i></i></span>
+                                               </div>
+                                           </div>
+                                           <div class="col-md-12 form-group form-group-sm">
+                                               <label for="point-opacity-fill" class="col-xs-3 control-label">Opacidad: </label>
+                                               <div class="col-xs-9 input-group colorpicker-component">
+                                                   <input id="point-opacity-fill" class="form-control" data-slider-id='point-opacity-fill' type="text" data-slider-min="0" data-slider-max="100" data-slider-step="1" data-slider-value="100"/>
+                                               </div>
+                                           </div>
+                                       </div>
+                                   </div>
+                               </div>
+                               <h4>Stroke</h4>
+                               <div class="panel panel-default">
+                                   <div class="panel-body">
+                                       <div class="row form-horizontal">
+                                           <div class="col-md-12 form-group form-group-sm">
+                                               <label for="point-stroke-style" class="col-xs-3 control-label">Estilo: </label>
+                                               <div id="cp4" class="col-xs-9 input-group colorpicker-component">
+                                                   <select id="point-stroke-style" class="form-control input-sm">
+                                                       <option>
+                                                           <h5>holas estylo</h5>
+                                                       </option>
+                                                       <option>2</option>
+                                                       <option>3</option>
+                                                   </select>
+                                               </div>
+                                           </div>
+                                           <div class="col-md-12 form-group form-group-sm">
+                                               <label for="point-stroke-color" class="col-xs-3 control-label">Color: </label>
+                                               <div id="point-stroke-color-picker" class="col-xs-9 input-group colorpicker-component">
+                                                   <input id="point-stroke-color" type="text" value="#00AABB" class="form-control" aria-describedby="sizing-addon3"/>
+                                                   <span class="input-group-addon"><i></i></span>
+                                               </div>
+                                           </div>
+                                           <div class="col-md-12 form-group form-group-sm">
+                                               <label for="point-stroke-with" class="col-xs-3 control-label">Ancho: </label>
+                                               <div class="col-xs-9 input-group colorpicker-component">
+                                                   <input id="point-stroke-with" type="text" value="1" class="form-control" aria-describedby="sizing-addon3"/>
+                                               </div>
+                                           </div>
+                                           <div class="col-md-12 form-group form-group-sm">
+                                               <label for="point-stroke-opacity" class="col-xs-3 control-label">Opacidad: </label>
+                                               <div class="col-xs-9 input-group colorpicker-component">
+                                                   <input id="point-stroke-opacity" class="form-control" data-slider-id='point-stroke-opacity' type="text" data-slider-min="0" data-slider-max="100" data-slider-step="1" data-slider-value="100"/>
+                                               </div>
+                                           </div>
+                                       </div>
+                                   </div>
+                               </div>
+                           </div>
 
 
-                    <h4>Stroke</h4>
-                    <div class="panel panel-default">
-                        <div class="panel-body">
-                            <div class="row form-horizontal">
 
-                                <div class="col-md-12 form-group form-group-sm">
-                                    <label for="colorFill3" class="col-xs-3 control-label">Estilo: </label>
-                                    <div id="cp4" class="col-xs-9 input-group colorpicker-component">
-                                        <select id="colorFill3" class="form-control input-sm">
-                                            <option>
-                                                <h5>holas estylo</h5>
-                                            </option>
-                                            <option>2</option>
-                                            <option>3</option>
-                                        </select>
-                                    </div>
-                                </div>
+                           <div id="sectionLine" class="tab-pane">
+                               <h4>Relleno</h4>
+                               <div class="panel panel-default">
+                                   <div class="panel-body">
+                                       <div class="row form-horizontal">
+                                           <div class="col-md-12 form-group form-group-sm">
+                                               <label for="line-color-fill" class="col-xs-3 control-label">Color: </label>
+                                               <div id="line-color-fill-picker" class="col-xs-9 input-group colorpicker-component">
+                                                   <input id="line-color-fill" type="text" value="#43A3434" class="form-control" />
+                                                   <span class="input-group-addon"><i></i></span>
+                                               </div>
+                                           </div>
+                                           <div class="col-md-12 form-group form-group-sm">
+                                               <label for="line-opacity-fill" class="col-xs-3 control-label">Opacidad: </label>
+                                               <div class="col-xs-9 input-group colorpicker-component">
+                                                   <input id="line-opacity-fill" class="form-control" data-slider-id='line-opacity-fill' type="text" data-slider-min="0" data-slider-max="100" data-slider-step="1" data-slider-value="100"/>
+                                               </div>
+                                           </div>
+                                       </div>
+                                   </div>
+                               </div>
+                               <h4>Stroke</h4>
+                               <div class="panel panel-default">
+                                   <div class="panel-body">
+                                       <div class="row form-horizontal">
+                                           <div class="col-md-12 form-group form-group-sm">
+                                               <label for="line-stroke-style" class="col-xs-3 control-label">Estilo: </label>
+                                               <div id="cp1" class="col-xs-9 input-group colorpicker-component">
+                                                   <select id="line-stroke-style" class="form-control input-sm">
+                                                       <option>
+                                                           <h5>holas estylo</h5>
+                                                       </option>
+                                                       <option>2</option>
+                                                       <option>3</option>
+                                                   </select>
+                                               </div>
+                                           </div>
+                                           <div class="col-md-12 form-group form-group-sm">
+                                               <label for="line-stroke-color" class="col-xs-3 control-label">Color: </label>
+                                               <div id="line-stroke-color-picker" class="col-xs-9 input-group colorpicker-component">
+                                                   <input id="line-stroke-color" type="text" value="#00AABB" class="form-control" aria-describedby="sizing-addon3"/>
+                                                   <span class="input-group-addon"><i></i></span>
+                                               </div>
+                                           </div>
+                                           <div class="col-md-12 form-group form-group-sm">
+                                               <label for="line-stroke-with" class="col-xs-3 control-label">Ancho: </label>
+                                               <div class="col-xs-9 input-group colorpicker-component">
+                                                   <input id="line-stroke-with" type="text" value="1" class="form-control" aria-describedby="sizing-addon3"/>
+                                               </div>
+                                           </div>
+                                           <div class="col-md-12 form-group form-group-sm">
+                                               <label for="line-stroke-opacity" class="col-xs-3 control-label">Opacidad: </label>
+                                               <div class="col-xs-9 input-group colorpicker-component">
+                                                   <input id="line-stroke-opacity" class="form-control" data-slider-id='line-stroke-opacity' type="text" data-slider-min="0" data-slider-max="100" data-slider-step="1" data-slider-value="100"/>
+                                               </div>
+                                           </div>
+                                       </div>
+                                   </div>
+                               </div>
+                           </div>
+
+
+                           <div id="sectionPolygon" class="tab-pane">
+                               <h4>Relleno</h4>
+                               <div class="panel panel-default">
+                                   <div class="panel-body">
+                                       <div class="row form-horizontal">
+                                           <div class="col-md-12 form-group form-group-sm">
+                                               <label for="polygon-color-fill" class="col-xs-3 control-label">Color: </label>
+                                               <div id="polygon-color-fill-picker" class="col-xs-9 input-group colorpicker-component">
+                                                   <input id="polygon-color-fill" type="text" value="#000000" class="form-control" />
+                                                   <span class="input-group-addon"><i></i></span>
+                                               </div>
+                                           </div>
+                                           <div class="col-md-12 form-group form-group-sm">
+                                               <label for="polygon-opacity-fill" class="col-xs-3 control-label">Opacidad: </label>
+                                               <div class="col-xs-9 input-group colorpicker-component">
+                                                   <input id="polygon-opacity-fill" class="form-control" data-slider-id='polygon-opacity-fill' type="text" data-slider-min="0" data-slider-max="100" data-slider-step="1" data-slider-value="100"/>
+                                               </div>
+                                           </div>
+                                       </div>
+                                   </div>
+                               </div>
+                               <h4>Stroke</h4>
+                               <div class="panel panel-default">
+                                   <div class="panel-body">
+                                       <div class="row form-horizontal">
+                                           <div class="col-md-12 form-group form-group-sm">
+                                               <label for="polygon-stroke-style" class="col-xs-3 control-label">Estilo: </label>
+                                               <div id="cp2" class="col-xs-9 input-group colorpicker-component">
+                                                   <select id="polygon-stroke-style" class="form-control input-sm">
+                                                       <option>
+                                                           <h5>holas estylo</h5>
+                                                       </option>
+                                                       <option>2</option>
+                                                       <option>3</option>
+                                                   </select>
+                                               </div>
+                                           </div>
+                                           <div class="col-md-12 form-group form-group-sm">
+                                               <label for="polygon-stroke-color" class="col-xs-3 control-label">Color: </label>
+                                               <div id="polygon-stroke-color-picker" class="col-xs-9 input-group colorpicker-component">
+                                                   <input id="polygon-stroke-color" type="text" value="#00AABB" class="form-control" aria-describedby="sizing-addon3"/>
+                                                   <span class="input-group-addon"><i></i></span>
+                                               </div>
+                                           </div>
+                                           <div class="col-md-12 form-group form-group-sm">
+                                               <label for="polygon-stroke-with" class="col-xs-3 control-label">Ancho: </label>
+                                               <div class="col-xs-9 input-group colorpicker-component">
+                                                   <input id="polygon-stroke-with" type="text" value="1" class="form-control" aria-describedby="sizing-addon3"/>
+                                               </div>
+                                           </div>
+                                           <div class="col-md-12 form-group form-group-sm">
+                                               <label for="polygon-stroke-opacity" class="col-xs-3 control-label">Opacidad: </label>
+                                               <div class="col-xs-9 input-group colorpicker-component">
+                                                   <input id="polygon-stroke-opacity" class="form-control" data-slider-id='polygon-stroke-opacity' type="text" data-slider-min="0" data-slider-max="100" data-slider-step="1" data-slider-value="100"/>
+                                               </div>
+                                           </div>
+                                       </div>
+                                   </div>
+                               </div>
+                           </div>
 
 
 
-                                <div class="col-md-12 form-group form-group-sm">
-                                    <label for="colorFill2" class="col-xs-3 control-label">Color: </label>
-                                    <div id="cp3" class="col-xs-9 input-group colorpicker-component">
-                                        <input id="colorFill2" type="text" value="#00AABB" class="form-control" aria-describedby="sizing-addon3"/>
-                                        <span class="input-group-addon"><i></i></span>
-                                    </div>
-                                </div>
 
-                                <div class="col-md-12 form-group form-group-sm">
-                                    <label for="colorFill4" class="col-xs-3 control-label">Ancho: </label>
-                                    <div class="col-xs-9 input-group colorpicker-component">
-                                        <input id="colorFill4" type="text" class="form-control" aria-describedby="sizing-addon3"/>
-                                    </div>
-                                </div>
-
-                                <div class="col-md-12 form-group form-group-sm">
-                                    <label for="ex2" class="col-xs-3 control-label">Opacidad: </label>
-                                    <div class="col-xs-9 input-group colorpicker-component">
-                                        <input id="ex2" class="form-control" data-slider-id='ex1Slider' type="text" data-slider-min="0" data-slider-max="100" data-slider-step="1" data-slider-value="100"/>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                       </div>
 
                 </div>
                 <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" onclick = "applyStyle()">Aceptar</button>
                     <button type="button" class="btn btn-default" data-dismiss="modal">Cerrar</button>
                 </div>
             </div><!-- /.modal-content -->
