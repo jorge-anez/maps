@@ -82,7 +82,7 @@
             //map.addControl(new OpenLayers.Control.KeyboardDefaults());
             //map.addControl(new OpenLayers.Control.OverviewMap());
 
-            map.setCenter(new OpenLayers.LonLat(-67.79266, -18.70219), 1);
+            map.setCenter(new OpenLayers.LonLat(-67.79266, -18.70219), 8);
 
 
             editor = new OpenLayers.Editor(map, {
@@ -542,13 +542,30 @@
             for(var i = 0; i < styleRules.length; i++) {
                 if(!styleRules[i].filter)
                         continue;
-                var geometryType = styleRules[i].filter.value;
                 var symbolizer = styleRules[i].symbolizer;
-                if(geometryType === 'Point') {
+                if(symbolizer.Point) {
+                    symbolizer.Point.stroke = true;
                     symbolizer.Point.fillColor = localPointColorFill;
-                    symbolizer.Point.pointRadius = localPointStrokeWith;
-                    symbolizer.Point.graphicName = 'circle';
-                    console.log(localPointColorFill);
+                    symbolizer.Point.fillOpacity = parseFloat(localPointOpacityFill);
+                    symbolizer.Point.strokeColor = localPointStrokeColor;
+                    symbolizer.Point.strokeWidth = parseInt(localPointStrokeWith);
+                    symbolizer.Point.strokeOpacity = parseFloat(localPointStrokeOpacity);
+                }
+
+                if(symbolizer.Line) {
+                    symbolizer.Line.strokeColor = localLineStrokeColor;
+                    symbolizer.Line.strokeWidth = parseInt(localLineStrokeWith);
+                    symbolizer.Line.strokeOpacity = parseFloat(localLineStrokeOpacity);
+                    console.log('Line: ' + localLineStrokeColor);
+                }
+
+                if(symbolizer.Polygon) {
+                    symbolizer.Polygon.fillColor = localPolygonColorFill;
+                    symbolizer.Polygon.fillOpacity = parseFloat(localPolygonOpacityFill);
+                    symbolizer.Polygon.strokeColor = localPolygonStrokeColor;
+                    symbolizer.Polygon.strokeWidth = parseInt(localPolygonStrokeWith);
+                    symbolizer.Polygon.strokeOpacity = parseFloat(localPolygonStrokeOpacity);
+                    console.log('Polygon: ' + localPolygonColorFill);
                 }
             }
             layer.redraw();
@@ -562,7 +579,7 @@
     #map {
         height: 600px;
         min-height: 600px;
-        background-color: #2aabd2;
+        /*background-color: #2aabd2; */
     }
     /*
     .modal-dialog {
@@ -696,7 +713,7 @@
                                            <div class="col-md-12 form-group form-group-sm">
                                                <label for="point-opacity-fill" class="col-xs-3 control-label">Opacidad: </label>
                                                <div class="col-xs-9 input-group colorpicker-component">
-                                                   <input id="point-opacity-fill" class="form-control" data-slider-id='point-opacity-fill' type="text" data-slider-min="0" data-slider-max="100" data-slider-step="1" data-slider-value="100"/>
+                                                   <input id="point-opacity-fill" class="form-control" data-slider-id='point-opacity-fill' type="text" data-slider-min="0" data-slider-max="1" data-slider-step="0.02" data-slider-value="1"/>
                                                </div>
                                            </div>
                                        </div>
@@ -734,7 +751,7 @@
                                            <div class="col-md-12 form-group form-group-sm">
                                                <label for="point-stroke-opacity" class="col-xs-3 control-label">Opacidad: </label>
                                                <div class="col-xs-9 input-group colorpicker-component">
-                                                   <input id="point-stroke-opacity" class="form-control" data-slider-id='point-stroke-opacity' type="text" data-slider-min="0" data-slider-max="100" data-slider-step="1" data-slider-value="100"/>
+                                                   <input id="point-stroke-opacity" class="form-control" data-slider-id='point-stroke-opacity' type="text" data-slider-min="0" data-slider-max="1" data-slider-step="0.02" data-slider-value="1"/>
                                                </div>
                                            </div>
                                        </div>
@@ -759,7 +776,7 @@
                                            <div class="col-md-12 form-group form-group-sm">
                                                <label for="line-opacity-fill" class="col-xs-3 control-label">Opacidad: </label>
                                                <div class="col-xs-9 input-group colorpicker-component">
-                                                   <input id="line-opacity-fill" class="form-control" data-slider-id='line-opacity-fill' type="text" data-slider-min="0" data-slider-max="100" data-slider-step="1" data-slider-value="100"/>
+                                                   <input id="line-opacity-fill" class="form-control" data-slider-id='line-opacity-fill' type="text" data-slider-min="0" data-slider-max="1" data-slider-step="0.02" data-slider-value="1"/>
                                                </div>
                                            </div>
                                        </div>
@@ -797,7 +814,7 @@
                                            <div class="col-md-12 form-group form-group-sm">
                                                <label for="line-stroke-opacity" class="col-xs-3 control-label">Opacidad: </label>
                                                <div class="col-xs-9 input-group colorpicker-component">
-                                                   <input id="line-stroke-opacity" class="form-control" data-slider-id='line-stroke-opacity' type="text" data-slider-min="0" data-slider-max="100" data-slider-step="1" data-slider-value="100"/>
+                                                   <input id="line-stroke-opacity" class="form-control" data-slider-id='line-stroke-opacity' type="text" data-slider-min="0" data-slider-max="1" data-slider-step="0.02" data-slider-value="1"/>
                                                </div>
                                            </div>
                                        </div>
@@ -821,7 +838,7 @@
                                            <div class="col-md-12 form-group form-group-sm">
                                                <label for="polygon-opacity-fill" class="col-xs-3 control-label">Opacidad: </label>
                                                <div class="col-xs-9 input-group colorpicker-component">
-                                                   <input id="polygon-opacity-fill" class="form-control" data-slider-id='polygon-opacity-fill' type="text" data-slider-min="0" data-slider-max="100" data-slider-step="1" data-slider-value="100"/>
+                                                   <input id="polygon-opacity-fill" class="form-control" data-slider-id='polygon-opacity-fill' type="text" data-slider-min="0" data-slider-max="1" data-slider-step="0.02" data-slider-value="1"/>
                                                </div>
                                            </div>
                                        </div>
@@ -859,7 +876,7 @@
                                            <div class="col-md-12 form-group form-group-sm">
                                                <label for="polygon-stroke-opacity" class="col-xs-3 control-label">Opacidad: </label>
                                                <div class="col-xs-9 input-group colorpicker-component">
-                                                   <input id="polygon-stroke-opacity" class="form-control" data-slider-id='polygon-stroke-opacity' type="text" data-slider-min="0" data-slider-max="100" data-slider-step="1" data-slider-value="100"/>
+                                                   <input id="polygon-stroke-opacity" class="form-control" data-slider-id='polygon-stroke-opacity' type="text" data-slider-min="0" data-slider-max="1" data-slider-step="0.02" data-slider-value="1"/>
                                                </div>
                                            </div>
                                        </div>
