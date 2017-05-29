@@ -21,8 +21,9 @@
     <script type="text/javascript" src="../bootstrap-slider/dist/bootstrap-slider.min.js"></script>
 
     <script type="text/javascript">
-        var URL_SERVER = 'http://localhost:8080';
+        var URL_SERVER = 'http://localhost';
         var layerAttributes = new Map();
+        var layerStyles = new Map();
 		var map, editor;
         function init() {
             OpenLayers.Lang.setCode(language);
@@ -82,7 +83,7 @@
             //map.addControl(new OpenLayers.Control.KeyboardDefaults());
             //map.addControl(new OpenLayers.Control.OverviewMap());
 
-            map.setCenter(new OpenLayers.LonLat(-67.79266, -18.70219), 8);
+            map.setCenter(new OpenLayers.LonLat(-67.79266, -18.70219), 1);
 
 
             editor = new OpenLayers.Editor(map, {
@@ -166,7 +167,7 @@
                         });
 
                         OpenLayers.Request.GET({
-                            url: URL_SERVER + '/gis-persistent/rest/style/layer/4/sld',
+                            url: URL_SERVER + '/gis-persistent/rest/style/layer/' + e.layerId + '/sld',
                             success: function(response) {
                                 var format = new OpenLayers.Format.SLD();
                                 var sld = format.read(response.responseXML || response.responseText);
@@ -460,82 +461,90 @@
             return htmlStr;
         }
 
-        function showStyle(layerId) {
-            var m = $('#styleModal').modal('show');
-            m.attr('data-layer-id', layerId);
-        }
-
-
         var pointOpacityFill = null;
         var pointStrokeOpacity = null;
         var lineOpacityFill = null;
         var lineStrokeOpacity = null;
         var polygonOpacityFill = null;
         var polygonStrokeOpacity = null;
+
+        var pointColorFillPicker = null;
+        var pointStrokeColorPicker = null;
+        var lineColorFillPicker = null;
+        var lineStrokeColorPicker = null;
+        var polygonColorFillPicker = null;
+        var polygonStrokeColorPicker = null;
         $(function() {
-            $('#point-color-fill-picker').colorpicker({format: 'hex'});
-            $('#point-stroke-color-picker').colorpicker({format: 'hex'});
-            $('#line-color-fill-picker').colorpicker({format: 'hex'});
-            $('#line-stroke-color-picker').colorpicker({format: 'hex'});
-            $('#polygon-color-fill-picker').colorpicker({format: 'hex'});
-            $('#polygon-stroke-color-picker').colorpicker({format: 'hex'});
+            pointColorFillPicker = $('#point-color-fill-picker').colorpicker({format: 'hex'});
+            pointStrokeColorPicker = $('#point-stroke-color-picker').colorpicker({format: 'hex'});
+            lineColorFillPicker = $('#line-color-fill-picker').colorpicker({format: 'hex'});
+            lineStrokeColorPicker = $('#line-stroke-color-picker').colorpicker({format: 'hex'});
+            polygonColorFillPicker = $('#polygon-color-fill-picker').colorpicker({format: 'hex'});
+            polygonStrokeColorPicker = $('#polygon-stroke-color-picker').colorpicker({format: 'hex'});
 
-            pointOpacityFill = $('#point-opacity-fill').slider({
-                formatter: function(value) {
-                    return value + '%';
-                }
-            });
-            pointStrokeOpacity = $('#point-stroke-opacity').slider({
-                formatter: function(value) {
-                    return value + '%';
-                }
-            });
-
-            lineOpacityFill  = $('#line-opacity-fill').slider({
-                formatter: function(value) {
-                    return value + '%';
-                }
-            });
-            lineStrokeOpacity = $('#line-stroke-opacity').slider({
-                formatter: function(value) {
-                    return value + '%';
-                }
-            });
-
-            polygonOpacityFill = $('#polygon-opacity-fill').slider({
-                formatter: function(value) {
-                    return value + '%';
-                }
-            });
-            polygonStrokeOpacity = $('#polygon-stroke-opacity').slider({
-                formatter: function(value) {
-                    return value + '%';
-                }
-            });
+            pointOpacityFill = $('#point-opacity-fill').slider({formatter: function(value) {return value;}});
+            pointStrokeOpacity = $('#point-stroke-opacity').slider({formatter: function(value) {return value;}});
+            lineOpacityFill  = $('#line-opacity-fill').slider({formatter: function(value) {return value;}});
+            lineStrokeOpacity = $('#line-stroke-opacity').slider({formatter: function(value) {return value;}});
+            polygonOpacityFill = $('#polygon-opacity-fill').slider({formatter: function(value) {return value;}});
+            polygonStrokeOpacity = $('#polygon-stroke-opacity').slider({formatter: function(value) {return value;}});
         });
 
+
+        function showStyle(layerId) {
+            var layer = map.getLayer(layerId);
+            var styleRules = layer.styleMap.styles.default.rules;
+            for(var i = 0; i < styleRules.length; i++) {
+                if(!styleRules[i].filter)
+                    continue;
+                var symbolizer = styleRules[i].symbolizer;
+                if(symbolizer.Point) {
+                    pointColorFillPicker.colorpicker('setValue', symbolizer.Point.fillColor);
+                    pointOpacityFill.slider('setValue', symbolizer.Point.fillOpacity);
+                    pointStrokeColorPicker.colorpicker('setValue', symbolizer.Point.strokeColor);
+                    $('#point-stroke-with').val(symbolizer.Point.strokeWidth);
+                    pointStrokeOpacity.slider('setValue', symbolizer.Point.strokeOpacity);
+                }
+                if(symbolizer.Line) {
+                    //lineColorFillPicker.colorpicker('setValue', symbolizer.Line.fillColor);
+                    //lineOpacityFill.slider('setValue', symbolizer.Line.fillOpacity);
+                    lineStrokeColorPicker.colorpicker('setValue', symbolizer.Line.strokeColor);
+                    $('#line-stroke-with').val(symbolizer.Line.strokeWidth);
+                    lineStrokeOpacity.slider('setValue', symbolizer.Line.strokeOpacity);
+                }
+
+                if(symbolizer.Polygon) {
+                    polygonColorFillPicker.colorpicker('setValue', symbolizer.Polygon.fillColor);
+                    polygonOpacityFill.slider('setValue', symbolizer.Polygon.fillOpacity);
+                    polygonStrokeColorPicker.colorpicker('setValue', symbolizer.Polygon.strokeColor);
+                    $('#polygon-stroke-with').val(symbolizer.Polygon.strokeWidth);
+                    polygonStrokeOpacity.slider('setValue', symbolizer.Polygon.strokeOpacity);
+                }
+            }
+            var m = $('#styleModal').modal('show');
+            m.attr('data-layer-id', layerId);
+        }
 
         function applyStyle() {
             var m = $('#styleModal');
             var layerId = m.attr('data-layer-id');
-
             var localPointColorFill = $('#point-color-fill').val();
-            var localPointOpacityFill = pointOpacityFill.val();
+            var localPointOpacityFill = pointOpacityFill.slider('getValue')
             var localPointStrokeColor = $('#point-stroke-color').val();
             var localPointStrokeWith = $('#point-stroke-with').val();
-            var localPointStrokeOpacity = pointStrokeOpacity.val();
+            var localPointStrokeOpacity = pointStrokeOpacity.slider('getValue')
 
             var localLineColorFill = $('#line-color-fill').val();
-            var localLineOpacityFill = lineOpacityFill.val();
+            var localLineOpacityFill = lineOpacityFill.slider('getValue')
             var localLineStrokeColor = $('#line-stroke-color').val();
             var localLineStrokeWith = $('#line-stroke-with').val();
-            var localLineStrokeOpacity = lineStrokeOpacity.val();
+            var localLineStrokeOpacity = lineStrokeOpacity.slider('getValue')
 
             var localPolygonColorFill = $('#polygon-color-fill').val();
-            var localPolygonOpacityFill = polygonOpacityFill.val();
+            var localPolygonOpacityFill = polygonOpacityFill.slider('getValue')
             var localPolygonStrokeColor = $('#polygon-stroke-color').val();
             var localPolygonStrokeWith = $('#polygon-stroke-with').val();
-            var localPolygonStrokeOpacity = polygonStrokeOpacity.val();
+            var localPolygonStrokeOpacity = polygonStrokeOpacity.slider('getValue')
 
             var layer = map.getLayer(layerId);
             var styleRules = layer.styleMap.styles.default.rules;
@@ -546,30 +555,103 @@
                 if(symbolizer.Point) {
                     symbolizer.Point.stroke = true;
                     symbolizer.Point.fillColor = localPointColorFill;
-                    symbolizer.Point.fillOpacity = parseFloat(localPointOpacityFill);
+                    symbolizer.Point.fillOpacity = localPointOpacityFill;
                     symbolizer.Point.strokeColor = localPointStrokeColor;
                     symbolizer.Point.strokeWidth = parseInt(localPointStrokeWith);
-                    symbolizer.Point.strokeOpacity = parseFloat(localPointStrokeOpacity);
+                    symbolizer.Point.strokeOpacity = localPointStrokeOpacity;
+                    var pointStyle = {
+                        "fill" : localPointColorFill,
+                        "fill-opacity" : localPointOpacityFill,
+                        "stroke" : localPointStrokeColor,
+                        "stroke-width" : parseInt(localPointStrokeWith),
+                        "stroke-opacity" : localPointStrokeOpacity
+                    };
+
+                    OpenLayers.Request.POST({
+                        url: URL_SERVER + '/gis-persistent/rest/style/layer/' + layerId + '/geometryType/Point/save',
+                        data: JSON.stringify(pointStyle),
+                        dataType: 'json',
+                        headers: {
+                            "Content-Type": "application/json; charset=utf-8"
+                        },
+                        callback: function (response) {
+                            console.log(response);
+                        },
+                        failure: function (response) {
+                            console.log("Failure: ");
+                            console.log(response);
+                        }
+                    });
+
                 }
 
                 if(symbolizer.Line) {
                     symbolizer.Line.strokeColor = localLineStrokeColor;
                     symbolizer.Line.strokeWidth = parseInt(localLineStrokeWith);
-                    symbolizer.Line.strokeOpacity = parseFloat(localLineStrokeOpacity);
-                    console.log('Line: ' + localLineStrokeColor);
+                    symbolizer.Line.strokeOpacity = localLineStrokeOpacity;
+
+                    var lineStyle = {
+                        "stroke" : localLineStrokeColor,
+                        "stroke-width" : parseInt(localLineStrokeWith),
+                        "stroke-opacity" : localLineStrokeOpacity
+                    };
+
+                    OpenLayers.Request.POST({
+                        url: URL_SERVER + '/gis-persistent/rest/style/layer/' + layerId + '/geometryType/Line/save',
+                        data: JSON.stringify(lineStyle),
+                        dataType: 'json',
+                        headers: {
+                            "Content-Type": "application/json; charset=utf-8"
+                        },
+                        callback: function (response) {
+                            console.log(response);
+                        },
+                        failure: function (response) {
+                            console.log("Failure: ");
+                            console.log(response);
+                        }
+                    });
                 }
 
                 if(symbolizer.Polygon) {
+                    symbolizer.Polygon.stroke = true;
                     symbolizer.Polygon.fillColor = localPolygonColorFill;
-                    symbolizer.Polygon.fillOpacity = parseFloat(localPolygonOpacityFill);
+                    symbolizer.Polygon.fillOpacity = localPolygonOpacityFill;
                     symbolizer.Polygon.strokeColor = localPolygonStrokeColor;
                     symbolizer.Polygon.strokeWidth = parseInt(localPolygonStrokeWith);
-                    symbolizer.Polygon.strokeOpacity = parseFloat(localPolygonStrokeOpacity);
-                    console.log('Polygon: ' + localPolygonColorFill);
+                    symbolizer.Polygon.strokeOpacity = localPolygonStrokeOpacity;
+
+                    var polygonStyle = {
+                        "fill" : localPolygonColorFill,
+                        "fill-opacity" : localPolygonOpacityFill,
+                        "stroke" : localPolygonStrokeColor,
+                        "stroke-width" : parseInt(localPolygonStrokeWith),
+                        "stroke-opacity" : localPolygonStrokeOpacity
+                    };
+
+                    OpenLayers.Request.POST({
+                        url: URL_SERVER + '/gis-persistent/rest/style/layer/' + layerId + '/geometryType/Polygon/save',
+                        data: JSON.stringify(polygonStyle),
+                        dataType: 'json',
+                        headers: {
+                            "Content-Type": "application/json; charset=utf-8"
+                        },
+                        callback: function (response) {
+                            console.log(response);
+                        },
+                        failure: function (response) {
+                            console.log("Failure: ");
+                            console.log(response);
+                        }
+                    });
                 }
             }
+
+
+
             layer.redraw();
             $('#styleModal').modal('hide');
+
         }
 
 
