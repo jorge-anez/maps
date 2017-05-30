@@ -83,7 +83,7 @@
             //map.addControl(new OpenLayers.Control.KeyboardDefaults());
             //map.addControl(new OpenLayers.Control.OverviewMap());
 
-            map.setCenter(new OpenLayers.LonLat(-67.79266, -18.70219), 1);
+            map.setCenter(new OpenLayers.LonLat(-67.79266, -18.70219), 8);
 
 
             editor = new OpenLayers.Editor(map, {
@@ -360,6 +360,24 @@
                 }
             });
         }
+        function deleteStyle(layerId) {
+            OpenLayers.Request.POST({
+                url: URL_SERVER + '/gis-persistent/rest/layer/' + layerId + '/delete',
+                headers: {
+                    "Content-Type": "application/json; charset=utf-8"
+                },
+                callback: function (response) {
+                    if(map.getLayer(layerId))
+                        map.getLayer(layerId).destroy();
+                    $("#layerList tr[data-layer-id = '" + layerId + "']").remove();
+                    console.log(response);
+                },
+                failure: function (response) {
+                    console.log("Failure: ");
+                    console.log(response);
+                }
+            });
+        }
 
         function showAttributes(layerId) {
             var layer = map.getLayer(layerId);
@@ -497,13 +515,13 @@
         }
 
         function getLayerView(e) {
-            var htmlStr = "<tr>";
+            var htmlStr = "<tr data-layer-id = '"+ e.layerId +"'>";
                 htmlStr += "<td>" + e.layerName + "</td>";
                 htmlStr += "<td><input type=\"checkbox\" checked onchange = \"setVisibility(" + e.layerId +", this.checked)\"></td>";
                 htmlStr += "<td><input type=\"radio\" name=\"editable\" onchange =\"addLayerToEditor(" + e.layerId + ")\"></td>";
                 htmlStr += "<td>";
                 htmlStr += "<div class=\"btn-group button-bar\" role=\"group\" aria-label=\"...\">";
-                htmlStr += "<button type=\"button\" class=\"btn btn-default btn-sm\"  onclick = \"showAttributes(" + e.layerId + ")\"  data-toggle=\"tooltip\" title=\"Attributos\">";
+                htmlStr += "<button type=\"button\" class=\"btn btn-default btn-sm\"  onclick = \"showAttributes(" + e.layerId + ")\"  data-toggle=\"tooltip\" title=\"Atributos\">";
                 htmlStr += "<span class=\"glyphicon glyphicon-eye-open\" aria-hidden=\"true\"></span>";
                 htmlStr += "</button>";
                 htmlStr += "<button type=\"button\" class=\"btn btn-default btn-sm\"  onclick = \"saveGeometry(" + e.layerId + ")\"  data-toggle=\"tooltip\" title=\"Guardar Geometria\">";
@@ -511,6 +529,9 @@
                 htmlStr += "</button>";
                 htmlStr += "<button type=\"button\" class=\"btn btn-default btn-sm\" onclick = \"showStyle(" + e.layerId + ")\" data-toggle=\"tooltip\" title=\"Estilos\">";
                 htmlStr += "<span class=\"glyphicon glyphicon-picture\" aria-hidden=\"true\"></span>";
+                htmlStr += "</button>";
+                htmlStr += "<button type=\"button\" class=\"btn btn-default btn-sm\" onclick = \"deleteStyle(" + e.layerId + ")\" data-toggle=\"tooltip\" title=\"Eliminar\">";
+                htmlStr += "<span class=\"glyphicon glyphicon-trash\" aria-hidden=\"true\"></span>";
                 htmlStr += "</button>";
                 htmlStr += "</div>";
                 htmlStr += "</td>";
@@ -734,7 +755,7 @@
         border-radius: 0;
     }
     .button-bar {
-        min-width: 100px;
+        min-width: 133px;
     }
     </style>
     <link rel="stylesheet" href="../theme/geosilk/geosilk.css" type="text/css" />
