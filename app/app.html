@@ -124,18 +124,58 @@
                     var layer = new OpenLayers.Layer.Vector("GeoJSON", {
                         displayInLayerSwitcher: false
                     });
-                    var geojson  = new OpenLayers.Format.GeoJSON();
-                    layer.addFeatures(geojson.read(geoJsonResponse.data));
-                    map.addLayer(layer);
-                    var layerData = {
-                        layerId: "'" + layer.id + "'",
+
+                    var requestObj = {
                         layerName: geoJsonResponse.name,
                         epsgCode: 4326
                     };
 
-                    var htmlStr = getLayerView(layerData);
-                    $('#layerList').append(htmlStr);
+                    OpenLayers.Request.POST({
+                        url: URL_SERVER + '/gis-persistent/rest/layer/save',
+                        data: JSON.stringify(requestObj),
+                        headers: {
+                            "Content-Type": "application/json; charset=utf-8"
+                        },
+                        dataType: 'json',
+                        callback: function (response) {
+                            var obj = JSON.parse(response.responseText);
+                            if(!obj.success) return;
+                            var layerData = obj.data;
 
+                            var geojson = new OpenLayers.Format.GeoJSON();
+                            var layer = new OpenLayers.Layer.Vector("GeoJSON", {
+                                displayInLayerSwitcher: false
+                            });
+                            layer.id = layerData.layerId;
+                            layer.addFeatures(geojson.read(geoJsonResponse.data));
+                            map.addLayer(layer);
+
+                            var set = new Set();
+                            for(var i = 0; i < layer.features.length; i++) {
+                                for(var prop in layer.features[i].attributes) {
+                                    set.add(prop);
+                                }
+                                for(var prop in layer.features[i].data) {
+                                    set.add(prop);
+                                }
+                            }
+                            var attrs = []
+                            set.forEach(function (e) {
+                                attrs.push({
+                                attributeId: null,
+                                attributeName: e,
+                                attributeType: 'String'
+                                });
+                            });
+                            layerAttributes.set(layerData.layerId, attrs);
+
+                            var htmlStr = getLayerView(layerData);
+                            $('#layerList').append(htmlStr);
+                        },
+                        failure: function (response) {
+                            console.log("Failure: ");
+                        }
+                    });
                 },
                 failure: function (response) {
                     console.log("Failure: ");
