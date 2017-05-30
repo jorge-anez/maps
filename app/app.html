@@ -21,7 +21,7 @@
     <script type="text/javascript" src="../bootstrap-slider/dist/bootstrap-slider.min.js"></script>
 
     <script type="text/javascript">
-        var URL_SERVER = 'http://localhost';
+        var URL_SERVER = 'http://localhost:8080';
         var layerAttributes = new Map();
         var layerStyles = new Map();
 		var map, editor;
@@ -172,6 +172,61 @@
                                 var format = new OpenLayers.Format.SLD();
                                 var sld = format.read(response.responseXML || response.responseText);
                                 layer.styleMap.styles["default"] = sld.namedLayers["style-template"].userStyles[0];//use 0 if there's only one user styles
+
+                                var styleRules = layer.styleMap.styles.default.rules;
+                                for(var i = 0; i < styleRules.length; i++) {
+                                    if(!styleRules[i].filter)
+                                        continue;
+                                    var symbolizer = styleRules[i].symbolizer;
+                                    if(symbolizer.Point && symbolizer.Text) {
+                                        for(var p in symbolizer.Text) {
+                                            if(p == 'label') {
+                                                var labels = symbolizer.Text[p].match(/(\$\{)([^}]+)(\})/)[2].split(',');
+                                                var str = '\n';
+                                                for(var k = 0; k < labels.length; k++)
+                                                    str += '${' + labels[k] + '}' + '\n';
+                                                symbolizer.Point[p] = str;
+                                            }else
+                                                symbolizer.Point[p] = symbolizer.Text[p];
+                                        }
+                                    }
+                                    if(symbolizer.Line && symbolizer.Text) {
+                                        for(var p in symbolizer.Text) {
+                                            if(p == 'label') {
+                                                var labels = symbolizer.Text[p].match(/(\$\{)([^}]+)(\})/)[2].split(',');
+                                                var str = '\n';
+                                                for(var k = 0; k < labels.length; k++)
+                                                    str += '${' + labels[k] + '}' + '\n';
+                                                symbolizer.Line[p] = str;
+                                            }else
+                                                symbolizer.Line[p] = symbolizer.Text[p];
+                                        }
+                                    }
+                                    if(symbolizer.LineString && symbolizer.Text) {
+                                        for(var p in symbolizer.Text) {
+                                            if(p == 'label') {
+                                                var labels = symbolizer.Text[p].match(/(\$\{)([^}]+)(\})/)[2].split(',');
+                                                var str = '\n';
+                                                for(var k = 0; k < labels.length; k++)
+                                                    str += '${' + labels[k] + '}' + '\n';
+                                                symbolizer.LineString[p] = str;
+                                            }else
+                                                symbolizer.LineString[p] = symbolizer.Text[p];
+                                        }
+                                    }
+                                    if(symbolizer.Polygon && symbolizer.Text) {
+                                        for(var p in symbolizer.Text) {
+                                            if(p == 'label') {
+                                                var labels = symbolizer.Text[p].match(/(\$\{)([^}]+)(\})/)[2].split(',');
+                                                var str = '\n';
+                                                for(var k = 0; k < labels.length; k++)
+                                                    str += '${' + labels[k] + '}' + '\n';
+                                                symbolizer.Polygon[p] = str;
+                                            }else
+                                                symbolizer.Polygon[p] = symbolizer.Text[p];
+                                        }
+                                    }
+                                }
                             }
                         });
 
@@ -353,6 +408,8 @@
         function addNewAttribute(layerId) {
             var layer = map.getLayer(layerId);
             var attribName = $("#attributeListModal input[name = 'attributeName']").val();
+            if(!attribName)
+                return;
             var attributeType = $("#attributeListModal input[name = 'attributeType']:checked").attr('type-date');
             var listAttribs = layerAttributes.get(layerId);
             if(!listAttribs) {
@@ -753,12 +810,12 @@
         </div><!-- /.modal-dialog -->
     </div><!-- /.modal -->
 
-    <div id="attributeListModal" class="modal fade" tabindex="-1" role="dialog">
+    <div id="attributeListModal" class="modal fade" tabindex="-1" role="dialog" data-layer-id = "0">
         <div class="modal-dialog" role="document">
             <div class="modal-content">
                 <div class="modal-header">
                     <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-                    <h4 class="modal-title">ATRIBUTOS</h4>
+                    <h4 class="modal-title">Atributos</h4>
                 </div>
                 <div class="modal-body table-responsive">
                 </div>
@@ -777,7 +834,7 @@
                        <ul class="nav nav-tabs">
                            <li class="active"><a data-toggle="tab" href="#sectionPoint">Punto</a></li>
                            <li><a data-toggle="tab" href="#sectionLine">Linea</a></li>
-                           <li><a data-toggle="tab" href="#sectionPolygon">poligono</a></li>
+                           <li><a data-toggle="tab" href="#sectionPolygon">Poligono</a></li>
                        </ul>
                        <div class="tab-content">
                            <div id="sectionPoint" class="tab-pane active">
