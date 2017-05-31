@@ -21,7 +21,7 @@
     <script type="text/javascript" src="../bootstrap-slider/dist/bootstrap-slider.min.js"></script>
 
     <script type="text/javascript">
-        var URL_SERVER = 'http://localhost:8080';
+        var URL_SERVER = 'http://localhost';
         var layerAttributes = new Map();
         var layerStyles = new Map();
 		var map, editor;
@@ -148,7 +148,8 @@
 
                             var geojson = new OpenLayers.Format.GeoJSON();
                             var layer = new OpenLayers.Layer.Vector("GeoJSON", {
-                                displayInLayerSwitcher: false
+                                displayInLayerSwitcher: false,
+                                projection: map.baseLayer.projection.getCode()
                             });
                             layer.id = layerData.layerId;
                             layer.addFeatures(geojson.read(geoJsonResponse.data));
@@ -371,9 +372,11 @@
         }
         function saveLayer() {
             var layerName = $('#layerModal input').val();
+            var epsgCode = parseInt(map.baseLayer.projection.getCode().match(/\d+/g));
             var obj = {
                 layerName: layerName,
-                epsgCode: 4326
+                epsgCode: epsgCode || 4326,
+                baseLayer: false
             };
             var request = new OpenLayers.Request.POST({
                 url: URL_SERVER + '/gis-persistent/rest/layer/save',
