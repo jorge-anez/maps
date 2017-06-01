@@ -86,7 +86,7 @@
 			map.addLayer(baseLayer);
             map.addControl(new OpenLayers.Control.MousePosition());
             //map.addControl(new OpenLayers.Control.ScaleLine());
-            //map.addControl(new OpenLayers.Control.LayerSwitcher());
+            map.addControl(new OpenLayers.Control.LayerSwitcher());
             //map.addControl(new OpenLayers.Control.KeyboardDefaults());
             //map.addControl(new OpenLayers.Control.OverviewMap());
 
@@ -365,7 +365,7 @@
                     if(!obj.success) return;
                     var layerData = obj.data;
 
-                    var layer = new OpenLayers.Layer.Vector("GeoJSON", {
+                    var layer = new OpenLayers.Layer.Vector(layerData.layerName, {
                         displayInLayerSwitcher: false
                     });
                     layer.id = layerData.layerId;
