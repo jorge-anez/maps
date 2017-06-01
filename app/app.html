@@ -352,7 +352,7 @@
                 baseLayer: false
             };
             var request = new OpenLayers.Request.POST({
-                url: URL_SERVER + '/gis-persistent/rest/layer/save',
+                url: c,
                 data: JSON.stringify(obj),
                 headers: {
                     "Content-Type": "application/json; charset=utf-8"
@@ -550,6 +550,9 @@
                 htmlStr += "<button type=\"button\" class=\"btn btn-default btn-sm\" onclick = \"showStyle(" + e.layerId + ")\" data-toggle=\"tooltip\" title=\"Estilos\">";
                 htmlStr += "<span class=\"glyphicon glyphicon-picture\" aria-hidden=\"true\"></span>";
                 htmlStr += "</button>";
+                htmlStr += "<a class=\"btn btn-default btn-sm\" data-toggle=\"tooltip\" title=\"Descargar\" target=\"_blank\" href=\"" + URL_SERVER + "/gis-persistent/rest/file/layer/" + e.layerId + "/download" + " \" >";
+                htmlStr += "<span class=\"glyphicon glyphicon-cloud-download\" aria-hidden=\"true\"></span>";
+                htmlStr += "</a>";
                 htmlStr += "<button type=\"button\" class=\"btn btn-default btn-sm\" onclick = \"deleteStyle(" + e.layerId + ")\" data-toggle=\"tooltip\" title=\"Eliminar\">";
                 htmlStr += "<span class=\"glyphicon glyphicon-trash\" aria-hidden=\"true\"></span>";
                 htmlStr += "</button>";
@@ -775,7 +778,7 @@
         border-radius: 0;
     }
     .button-bar {
-        min-width: 133px;
+        min-width: 166px;
     }
     </style>
     <link rel="stylesheet" href="../theme/geosilk/geosilk.css" type="text/css" />
