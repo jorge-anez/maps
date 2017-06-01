@@ -21,15 +21,18 @@
     <script type="text/javascript" src="../bootstrap-slider/dist/bootstrap-slider.min.js"></script>
 
     <script type="text/javascript">
-        var URL_SERVER = 'http://localhost';
+        var URL_SERVER = 'http://localhost:8080';
         var layerAttributes = new Map();
         var layerStyles = new Map();
-		var map, editor;
+		var map = null, editor = null;
         function init() {
             OpenLayers.Lang.setCode(language);
-            map = new OpenLayers.Map('map');
-           // map.addLayer(new OpenLayers.Layer.OSM());
-            //async
+            map = new OpenLayers.Map('map', {
+                projection: new OpenLayers.Projection("EPSG:32719"),
+                displayProjection: new OpenLayers.Projection("EPSG:32719")
+            });
+            //map.addLayer(new OpenLayers.Layer.OSM());
+
             var baseLayerData = null;
             var BaseLayerRequest = new OpenLayers.Request.GET({
                 url: URL_SERVER + '/gis-persistent/rest/layer/baseLayer',
@@ -44,13 +47,13 @@
                 }
             });
 
-			//console.log("after base layer");
             var bounds = new OpenLayers.Bounds(
+                    //441867.78, 1116915.04, 833978.56, 10000000.00
                     441867.78, 1116915.04, 833978.56, 10000000.00
             );
 			var baseLayer = new OpenLayers.Layer.Vector("Mapa Oruro", {
                                     maxExtent: bounds,
-									projection       : "EPSG:32719",
+									projection       :  new OpenLayers.Projection("EPSG:32719"),
                                     isBaseLayer      : true,
 									strategies       : [new OpenLayers.Strategy.Fixed()],
 									protocol         :  new OpenLayers.Protocol.HTTP({
@@ -79,36 +82,15 @@
                                                     labelOutlineWidth: 2
                                     }})
 								});
-            baseLayer.id = baseLayerData.layerId;
+            //baseLayer.id = baseLayerData.layerId;
 			map.addLayer(baseLayer);
             map.addControl(new OpenLayers.Control.MousePosition());
-            map.addControl(new OpenLayers.Control.ScaleLine());
-            map.addControl(new OpenLayers.Control.LayerSwitcher());
+            //map.addControl(new OpenLayers.Control.ScaleLine());
+            //map.addControl(new OpenLayers.Control.LayerSwitcher());
             //map.addControl(new OpenLayers.Control.KeyboardDefaults());
             //map.addControl(new OpenLayers.Control.OverviewMap());
 
             map.setCenter(new OpenLayers.LonLat(500000.00, 5572242.78), 2);
-
-
-            editor = new OpenLayers.Editor(map, {
-                activeControls: [
-                      'LayerSettings'
-                    , 'Navigation'
-                    , 'SnappingSettings'
-                    , 'CADTools'
-                    , 'TransformFeature'
-                    , 'Separator'
-                    , 'DeleteFeature'
-                    , 'DragFeature'
-                    , 'SelectFeature'
-                    , 'Separator'
-                    , 'DrawHole'
-                    , 'ModifyFeature'
-                    , 'Separator'
-                ],
-                featureTypes: ['text','regular', 'polygon', 'path', 'point']
-            });
-            //editor.startEditMode();
             loadLayerList();
         }
 
@@ -125,9 +107,6 @@
                 data: formData,
                 callback: function (response) {
                     var geoJsonResponse = JSON.parse(response.responseText);
-                    var layer = new OpenLayers.Layer.Vector("GeoJSON", {
-                        displayInLayerSwitcher: false
-                    });
 
                     var requestObj = {
                         layerName: geoJsonResponse.name,
@@ -147,9 +126,8 @@
                             var layerData = obj.data;
 
                             var geojson = new OpenLayers.Format.GeoJSON();
-                            var layer = new OpenLayers.Layer.Vector("GeoJSON", {
-                                displayInLayerSwitcher: false,
-                                projection: map.baseLayer.projection.getCode()
+                            var layer = new OpenLayers.Layer.Vector(geoJsonResponse.name, {
+                                displayInLayerSwitcher: false
                             });
                             layer.id = layerData.layerId;
                             layer.addFeatures(geojson.read(geoJsonResponse.data));
@@ -202,7 +180,7 @@
                     var htmlStr = "";
                     layerList.forEach(function(e) {
                         htmlStr += getLayerView(e);
-                        var layer = new OpenLayers.Layer.Vector("GeoJSON", {
+                        var layer = new OpenLayers.Layer.Vector(e.layerName, {
                             displayInLayerSwitcher: false,
                             strategies: [new OpenLayers.Strategy.Fixed()],
                             protocol: new OpenLayers.Protocol.HTTP({
@@ -288,43 +266,38 @@
         }
 
         function addLayerToEditor(layerId) {
-            if(editor){
+            if(editor)
                 editor.stopEditMode();
-            }
-            var layer = map.getLayer(layerId);
-            if(!layer) {
-                layer = new OpenLayers.Layer.Vector("GeoJSON", {
-                    displayInLayerSwitcher: false
-                });
-                layer.id = layerId;
-                map.addLayer(layer);
-            }
 
-            editor.editLayer = layer;
-            //editor.stopEditMode();
-            //editor.initialize(map, {editLayer: layer});
-            //console.log(layer);
-            editor.addEditorControls();
+            var layer = map.getLayer(layerId);
+
+            editor = new OpenLayers.Editor(map, {
+                editLayer: layer,
+                activeControls: [
+                    'LayerSettings'
+                    , 'Navigation'
+                    , 'SnappingSettings'
+                    , 'CADTools'
+                    , 'TransformFeature'
+                    , 'Separator'
+                    , 'DeleteFeature'
+                    , 'DragFeature'
+                    , 'SelectFeature'
+                    , 'Separator'
+                    , 'DrawHole'
+                    , 'ModifyFeature'
+                    , 'Separator'
+                ],
+                featureTypes: ['text','regular', 'polygon', 'path', 'point']
+            });
             editor.startEditMode();
-            console.log(layer);
         }
 
         function setVisibility(layerId, state) {
             var layer = map.getLayer(layerId);
-            if(layer)
-                layer.setVisibility(state);
-            else {
-                layer = new OpenLayers.Layer.Vector("GeoJSON", {
-                    displayInLayerSwitcher: false,
-                    strategies: [new OpenLayers.Strategy.Fixed()],
-                    protocol: new OpenLayers.Protocol.HTTP({
-                        url: URL_SERVER + '/gis-persistent/rest/layer/' + layerId + '/listGeometries',
-                        format: new OpenLayers.Format.GeoJSON()
-                    })
-                });
-                layer.id = layerId;
-                map.addLayer(layer);
-            }
+            if(!layer)
+                return;
+            layer.setVisibility(state);
         }
 
         function saveGeometry(layerId) {
