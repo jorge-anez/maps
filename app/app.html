@@ -21,7 +21,7 @@
     <script type="text/javascript" src="../bootstrap-slider/dist/bootstrap-slider.min.js"></script>
 
     <script type="text/javascript">
-        var URL_SERVER = 'http://localhost:8080';
+        var URL_SERVER = 'http://localhost';
         var layerAttributes = new Map();
         var layerStyles = new Map();
 		var map = null, editor = null;
@@ -49,7 +49,7 @@
 
             var bounds = new OpenLayers.Bounds(
                     //441867.78, 1116915.04, 833978.56, 10000000.00
-                    441867.78, 1116915.04, 833978.56, 10000000.00
+                    407272.49333, 7775182.551883, 896861.46543, 9100490.838992
             );
 			var baseLayer = new OpenLayers.Layer.Vector("Mapa Oruro", {
                                     maxExtent: bounds,
@@ -90,7 +90,8 @@
             //map.addControl(new OpenLayers.Control.KeyboardDefaults());
             //map.addControl(new OpenLayers.Control.OverviewMap());
 
-            map.setCenter(new OpenLayers.LonLat(500000.00, 5572242.78), 2);
+            //map.setCenter(new OpenLayers.LonLat(500000.00, 5572242.78), 2);
+            map.setCenter(new OpenLayers.LonLat(631587, 7929698), 3);
             loadLayerList();
         }
 
