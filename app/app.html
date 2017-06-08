@@ -19,9 +19,38 @@
     <script type="text/javascript" src="../colorpicker/dist/js/bootstrap-colorpicker.min.js"></script>
     <link rel="stylesheet" href="../bootstrap-slider/dist/css/bootstrap-slider.min.css" type="text/css" />
     <script type="text/javascript" src="../bootstrap-slider/dist/bootstrap-slider.min.js"></script>
+    <script type="text/javascript" src="../spining/js/spin.min.js"></script>
 
     <script type="text/javascript">
-        var URL_SERVER = 'http://localhost:8080';
+
+        var opts = {
+            lines: 13 // The number of lines to draw
+            , length: 28 // The length of each line
+            , width: 14 // The line thickness
+            , radius: 42 // The radius of the inner circle
+            , scale: 1 // Scales overall size of the spinner
+            , corners: 1 // Corner roundness (0..1)
+            , color: '#000' // #rgb or #rrggbb or array of colors
+            , opacity: 0.25 // Opacity of the lines
+            , rotate: 0 // The rotation offset
+            , direction: 1 // 1: clockwise, -1: counterclockwise
+            , speed: 1 // Rounds per second
+            , trail: 60 // Afterglow percentage
+            , fps: 20 // Frames per second when using setTimeout() as a fallback for CSS
+            , zIndex: 2e9 // The z-index (defaults to 2000000000)
+            , className: 'spinner' // The CSS class to assign to the spinner
+            , top: '50%' // Top position relative to parent
+            , left: '50%' // Left position relative to parent
+            , shadow: false // Whether to render a shadow
+            , hwaccel: false // Whether to use hardware acceleration
+            , position: 'absolute' // Element positioning
+        }
+        //var spinnerTarget = document.getElementById('map');
+        //var spinner = new Spinner(opts);
+        //spinner.spin(spinnerTarget);
+        //spinner.stop();
+
+        var URL_SERVER = 'http://190.129.2.213';
         var layerAttributes = new Map();
         var layerStyles = new Map();
 		var map = null, editor = null;
@@ -86,6 +115,8 @@
 
 
         function uploadShape() {
+            var target = document.getElementById('map');
+            var spinner = new Spinner(opts).spin(target);
             var formData = new FormData();
             formData.append("files", document.getElementById("shp").files[0]);
             formData.append("files", document.getElementById("dbf").files[0]);
@@ -96,10 +127,13 @@
                 data: formData,
                 callback: function (response) {
                     var geoJsonResponse = JSON.parse(response.responseText);
-
+                    if(!geoJsonResponse.success)
+                            return;
+                    var epsgCode = parseInt(map.baseLayer.projection.getCode().match(/\d+/g));
                     var requestObj = {
                         layerName: geoJsonResponse.name,
-                        epsgCode: 4326
+                        epsgCode: epsgCode || 4326,
+                        baseLayer: false
                     };
 
                     OpenLayers.Request.POST({
@@ -143,6 +177,7 @@
 
                             var htmlStr = getLayerView(layerData);
                             $('#layerList').append(htmlStr);
+                            spinner.stop();
                         },
                         failure: function (response) {
                             console.log("Failure: ");
@@ -315,6 +350,8 @@
                 geojson: geojson
             };
 
+            var target = document.getElementById('map');
+            var spinner = new Spinner(opts).spin(target);
             var request = new OpenLayers.Request.POST({
                 url: URL_SERVER + '/gis-persistent/rest/layer/' + layerId + '/saveGeometries',
                 data: JSON.stringify(layerRequest),
@@ -323,7 +360,7 @@
                     "Content-Type": "application/json; charset=utf-8"
                 },
                 callback: function (response) {
-                    console.log(response);
+                    spinner.stop();
                 },
                 failure: function (response) {
                     console.log("Failure: ");
@@ -739,8 +776,6 @@
                     });
                 }
             }
-
-
 
             layer.redraw();
             $('#styleModal').modal('hide');
