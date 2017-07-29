@@ -50,7 +50,7 @@
         //spinner.spin(spinnerTarget);
         //spinner.stop();
 
-        var URL_SERVER = 'http://190.129.2.213';
+        var URL_SERVER = 'http://localhost:8080';
         var layerAttributes = new Map();
         var layerStyles = new Map();
 		var map = null, editor = null;
@@ -333,7 +333,7 @@
                 console.log('empty features');
                 return
             }
-            var listAttribs = layerAttributes.get(layerId) || [];
+            var listAttribs = getAttrsLayer(layerId);
             for(var k = 0; k < listAttribs.length; k++) {
                 var attribName = listAttribs[k].attributeName;
                 for (var i = 0; i < layer.features.length; i++) {
@@ -369,9 +369,11 @@
             });
 
         }
+
         function addNewLayer() {
             $('#layerModal').modal('show');
         }
+
         function saveLayer() {
             var layerName = $('#layerModal input').val();
             var epsgCode = parseInt(map.baseLayer.projection.getCode().match(/\d+/g));
@@ -409,6 +411,7 @@
                 }
             });
         }
+
         function deleteStyle(layerId) {
             OpenLayers.Request.POST({
                 url: URL_SERVER + '/gis-persistent/rest/layer/' + layerId + '/delete',
@@ -429,47 +432,29 @@
         }
 
         function showAttributes(layerId) {
+            var attrs = getAttrsLayer(layerId);
+            renderAttributes(layerId, attrs);
+        }
+
+        function getAttrsLayer(layerId) {
             var layer = map.getLayer(layerId);
-            var listAttribs = layerAttributes.get(layerId);
-            if(layer && isNaN(layerId)) {
-                var set = new Set();
-                for(var i = 0; i < layer.features.length; i++) {
-                    for(var prop in layer.features[i].attributes) {
-                        set.add(prop);
-                    }
-                    for(var prop in layer.features[i].data) {
-                        set.add(prop);
-                    }
+            var set = new Set();
+            for(var i = 0; i < layer.features.length; i++) {
+                for(var prop in layer.features[i].attributes) {
+                    set.add(prop);
                 }
-                var attrs = []
-                set.forEach(function (e) {
-                    attrs.push({
-                        attributeId: null,
-                        attributeName: e,
-                        attributeType: 'String'
-                    });
+                for(var prop in layer.features[i].data) {
+                    set.add(prop);
+                }
+            }
+            var attrs = []
+            set.forEach(function (e) {
+                attrs.push({
+                    attributeName: e,
+                    attributeType: 'String'
                 });
-                layerAttributes.set(layerId, attrs);
-                listAttribs = attrs;
-            }
-            if(!listAttribs) {
-                var request = new OpenLayers.Request.GET({
-                    url: URL_SERVER + '/gis-persistent/rest/layer/' + layerId + '/listAttributes',
-                    callback: function (response) {
-                        var obj = JSON.parse(response.responseText);
-                        if (!obj.success) return;
-                        layerAttributes.set(layerId, obj.list);
-                        renderAttributes(layerId)
-                    },
-                    failure: function (response) {
-                        console.log("Failure: ");
-                        console.log(response);
-                    }
-                });
-            }
-            else {
-                renderAttributes(layerId);
-            }
+            });
+            return attrs;
         }
 
         function addNewAttribute(layerId) {
@@ -477,25 +462,13 @@
             var attribName = $("#attributeListModal input[name = 'attributeName']").val();
             if(!attribName)
                 return;
-            var attributeType = $("#attributeListModal input[name = 'attributeType']:checked").attr('type-date');
-            var listAttribs = layerAttributes.get(layerId);
-            if(!listAttribs) {
-                layerAttributes.set(layerId, [{attributeId: null, attributeName: attribName, attributeType: attributeType}]);
-            }else{
-                for(var i = 0; i < listAttribs.length; i++) {
-                    var e = listAttribs[i];
-                    if(e.attributeName === attribName) return;
-                }
-                listAttribs.push({attributeId: null, attributeName: attribName, attributeType: attributeType});
+            //var attributeType = $("#attributeListModal input[name = 'attributeType']:checked").attr('type-date');
+            for(var i = 0; i < layer.features.length; i++) {
+                layer.features[i].attributes[attribName] = null;
+                layer.features[i].data[attribName] = null;
             }
-            if(layer) {
-                for(var i = 0; i < layer.features.length; i++) {
-                    layer.features[i].attributes[attribName] = null;
-                    layer.features[i].data[attribName] = null;
-                }
-
-            }
-            renderAttributes(layerId);
+            var attrs = getAttrsLayer(layerId);
+            renderAttributes(layerId, attrs);
         }
 
         function onChangeAttribute(comp, layerId, i, attributeName, attributeType) {
@@ -521,9 +494,8 @@
             }
         }
 
-        function renderAttributes(layerId) {
+        function renderAttributes(layerId, attribList) {
             var layer = map.getLayer(layerId);
-            var attribList = layerAttributes.get(layerId);
             if(layer == null || attribList == null) return;
             var htmlNewAttr  = "<div class=\"input-group\">";
             htmlNewAttr += "<span class=\"input-group-addon\">Nombre Attributo</span>";
@@ -541,7 +513,7 @@
             var htmlHead = "<table class=\"table table-bordered\"><thead><tr>";
             htmlHead += "<th>#</th>";
             for(var k = 0; k < attribList.length; k++) {
-                var attribType = (attribList[k].attributeType == 'Integer')?'Int': (attribList[k].attributeType == 'Double')?'Float':'Str';
+                var attribType = (attribList[k].attributeType == 'Integer')?'Int': (attribList[k].attributeType == 'Double')?'Float':'String';
                 htmlHead += "<th>" + attribList[k].attributeName + "["+ attribType +"]</th>";
             }
             htmlHead += "</tr></thead>";
@@ -777,7 +749,6 @@
                 }
             }
 
-            layer.redraw();
             $('#styleModal').modal('hide');
 
         }
