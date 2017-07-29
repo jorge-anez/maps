@@ -441,9 +441,11 @@
             var set = new Set();
             for(var i = 0; i < layer.features.length; i++) {
                 for(var prop in layer.features[i].attributes) {
+                    if(prop === 'geometryType') continue;
                     set.add(prop);
                 }
                 for(var prop in layer.features[i].data) {
+                    if(prop === 'geometryType') continue;
                     set.add(prop);
                 }
             }
